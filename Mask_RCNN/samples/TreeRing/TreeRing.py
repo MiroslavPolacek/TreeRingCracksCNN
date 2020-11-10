@@ -21,13 +21,13 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
     python3 TreeRing.py train --dataset=/Users/miroslav.polacek/Dropbox\ \(VBC\)/'Group Folder Swarts'/Research/CNNRings/Mask_RCNN/datasets/treering --weights=last
 
     # Train a new model starting from ImageNet weights
-    python3 TreeRing.py train --dataset=/Users/miroslav.polacek/Dropbox\ \(VBC\)/'Group Folder Swarts'/Research/CNNRings/Mask_RCNN/datasets/treering --weights=imagenet
-    
+    python3 TreeRing.py train --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering --weights=imagenet
+
     #Train on Tree Rings starting from ImageNet weights
     python3 TreeRing.py train --dataset=/Users/miroslav.polacek/Dropbox\ \(VBC\)/'Group Folder Swarts'/Research/CNNRings/Mask_RCNN/datasets/treering --weights=imagenet
 
     ##next two should be eventually removed
-    
+
     # Apply color splash to an image
     python3 TreeRing.py splash --weights=/path/to/weights/file.h5 --image=<URL or path to file>
 
@@ -68,31 +68,31 @@ class BalloonConfig(Config):
     Derives from the base Config class and overrides some values.
     """
     # Give the configuration a recognizable name
-    NAME = "TreeRing30"
+    NAME = "TreeRingCracks"
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU. V100 should have 32gb memory, seems can manage 6 images 1024x1024
     IMAGES_PER_GPU = 4
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 1  # Background + ring
+    NUM_CLASSES = 1 + 1 + 1  # Background + ring + crack
 
     # Number of training steps per epoch rule of thumb taining images/images per GPU
-    STEPS_PER_EPOCH = 420
-    
+    STEPS_PER_EPOCH = 3
+
     # Number of validation steps per epoch
-    VALIDATION_STEPS = 50
-    
+    VALIDATION_STEPS = 2
+
     # Backbone network architecture
     # Supported values are: resnet50, resnet101.
-    
+
     BACKBONE = "resnet101"
-    
+
     # If enabled, resizes instance masks to a smaller size to reduce
     # memory load. Recommended when using high-resolution images.
     USE_MINI_MASK = True
     MINI_MASK_SHAPE = (56, 56)  # (height, width) of the mini-mask, default (56, 56)
-    
+
     # Input image resizing
     # Generally, use the "square" resizing mode for training and predicting
     # and it should work well in most cases. In this mode, images are scaled
@@ -120,14 +120,14 @@ class BalloonConfig(Config):
     # up scaling. For example, if set to 2 then images are scaled up to double
     # the width and height, or more, even if MIN_IMAGE_DIM doesn't require it.
     # However, in 'square' mode, it can be overruled by IMAGE_MAX_DIM.
-    
+
     # Length of square anchor side in pixels. The default was (32, 64, 128, 256, 512)
     RPN_ANCHOR_SCALES = (32, 64, 128, 256, 512)
-    
+
     #Non-max suppression threshold to filter RPN proposals.
     # You can increase this during training to generate more propsals.
     RPN_NMS_THRESHOLD = 0.9
-    
+
     # Number of ROIs per image to feed to classifier/mask heads
     # The Mask RCNN paper uses 512 but often the RPN doesn't generate
     # enough positive proposals to fill this and keep a positive:negative
@@ -139,7 +139,7 @@ class BalloonConfig(Config):
     # Skip detections with < 90% confidence 0.9 was for baloons
     # for nucleus 0
     DETECTION_MIN_CONFIDENCE = 0.50
-    
+
     # Learning rate and momentum
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
     # weights to explode. Likely due to differences in optimizer
@@ -159,7 +159,7 @@ class BalloonConfig(Config):
         "mrcnn_bbox_loss": 1.,
         "mrcnn_mask_loss": 1.
     }
-    
+
     # Gradient norm clipping. Default 5.0. Some blog recommanded 10 with LR = 0.01
     GRADIENT_CLIP_NORM = 5.0
 
@@ -174,7 +174,7 @@ class BalloonDataset(utils.Dataset):
         dataset_dir: Root directory of the dataset.
         subset: Subset to load: train or val
         """
-        # Add classes. We have only one class to add.
+        # Add classes.
         self.add_class("rings", 1, "ring")
         self.add_class("rings", 2, "crack")
 
@@ -213,25 +213,38 @@ class BalloonDataset(utils.Dataset):
             # The if condition is needed to support VIA versions 1.x and 2.x.
             if type(a['regions']) is dict:
                 polygons = [r['shape_attributes'] for r in a['regions'].values()]
+                class_ids_name = [r['region_attributes'] for r in a['regions'].values()]
             else:
-                polygons = [r['shape_attributes'] for r in a['regions']] 
-
+                polygons = [r['shape_attributes'] for r in a['regions']]
+                class_ids_name = [r['region_attributes'] for r in a['regions']]
+            # Change class IDs to integers
+            class_ids = []
+            for i in range(len(class_ids_name)):
+                if class_ids_name[i]['type'] == 'RingBndy':
+                    class_ids.append(1)
+                elif class_ids_name[i]['type'] == 'CrackPoly':
+                    class_ids.append(2)
+                else:
+                    print("Annotation is neither RingBndy nor CrackPoly")
             # load_mask() needs the image size to convert polygons to masks.
             # Unfortunately, VIA doesn't include it in JSON, so we must read
             # the image. This is only managable since the dataset is tiny.
-            #NEXT THREE LINES MIGHT NOT BE NEEDED AS I CAN SAVE IT IN JSON
-            #NO NEED TO LOAD IMAGE EXTRA TIME DURING TRAINING
+
             image_path = os.path.join(dataset_dir, a['filename'])
             #print(image_path) #this was only for inspecting tiff loading problems
-            image = skimage.io.imread(image_path)
-            height, width = image.shape[:2]
+            #image = skimage.io.imread(image_path)
+            #height, width = image.shape[:2]
+
+            height = a['size'].split('x')[0]
+            width = a['size'].split('x')[1]
 
             self.add_image(
-                "ring",
+                "rings",
                 image_id=a['filename'],  # use file name as a unique image id
                 path=image_path,
-                width=width, height=height,
-                polygons=polygons)
+                width=int(width), height=int(height),
+                polygons=polygons,
+                class_ids=class_ids)
 
     def load_mask(self, image_id):
         """Generate instance masks for an image.
@@ -242,7 +255,7 @@ class BalloonDataset(utils.Dataset):
         """
         # If not a balloon dataset image, delegate to parent class.
         image_info = self.image_info[image_id]
-        if image_info["source"] != "ring":
+        if image_info["source"] != "rings":
             return super(self.__class__, self).load_mask(image_id)
 
         # Convert polygons to a bitmap mask of shape
@@ -257,12 +270,13 @@ class BalloonDataset(utils.Dataset):
 
         # Return mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
-        return mask.astype(np.bool), np.ones([mask.shape[-1]], dtype=np.int32)
+        #return mask.astype(np.bool), np.ones([mask.shape[-1]], dtype=np.int32) #HERE I NEED TO ADD CLADS IDS TO AN ARRAY OF MASKS
+        return mask.astype(np.bool), np.asarray(info["class_ids"], dtype=np.int32)
 
     def image_reference(self, image_id):
         """Return the path of the image."""
         info = self.image_info[image_id]
-        if info["source"] == "ring":
+        if info["source"] == "rings":
             return info["path"]
         else:
             super(self.__class__, self).image_reference(image_id)
@@ -282,22 +296,22 @@ def train(model):
     dataset_val = BalloonDataset()
     dataset_val.load_balloon(args.dataset, "val")
     dataset_val.prepare()
-    
+
     # Image augmentation
     # http://imgaug.readthedocs.io/en/latest/source/augmenters.html
-    
+    """
     augmentation = iaa.SomeOf((1, 3), [
             iaa.Fliplr(0.5),
             iaa.Flipud(0.5),
             iaa.Crop(percent=(0, 0.1)),
             iaa.Affine(rotate=(-90, 90)),
             #iaa.Affine(shear=(-16, 16)), #stretches to the right nad the left
-            #iaa.Affine(scale={"x": (0.5, 1.5), "y": (0.5, 1.5)}), #zooming in and out randomply per every axes by 20%          
+            #iaa.Affine(scale={"x": (0.5, 1.5), "y": (0.5, 1.5)}), #zooming in and out randomply per every axes by 20%
             iaa.GaussianBlur(sigma=(0.0, 0.5)),
             iaa.Multiply((0.5, 1.2)), #changeing brightness
             iaa.Grayscale(alpha=(0.0, 0.9))
         ])
-
+    """
     # *** This training schedule is an example. Update to your needs ***
     # Since we're using a very small dataset, and starting from
     # COCO trained weights, we don't need to train too long. Also,
@@ -305,11 +319,11 @@ def train(model):
     print("Training network heads")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
-                epochs=40,
-                augmentation=augmentation,
+                epochs=2,
+                #augmentation=augmentation,
                 layers='heads') # 'heads' or 'all'
-                
-    
+
+
 ############################################################
 #  Training
 ############################################################
