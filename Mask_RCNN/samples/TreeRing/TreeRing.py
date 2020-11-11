@@ -405,7 +405,7 @@ if __name__ == '__main__':
     elif args.weights.lower() == "imagenet":
         # Start from ImageNet trained weights
         weights_path = model.get_imagenet_weights()
-    elif args.weights == "BestOnRings"
+    elif args.weights == "BestOnRings":
         weights_path = os.path.join(ROOT_DIR, "logs/BestOnRings/BestOnRings.h5")
     else:
         weights_path = args.weights
