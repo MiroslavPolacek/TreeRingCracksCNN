@@ -11,4 +11,4 @@
 ml load anaconda3/2019.03
 source activate ~/.conda/envs/TreeRingCNN
 
-time ~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/TreeRing.py train --dataset=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering  --weights=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/BestOnRings/BestOnRings.h5
+time ~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/TreeRing.py train --dataset=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering  --weights=BestOnRings

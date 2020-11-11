@@ -405,12 +405,20 @@ if __name__ == '__main__':
     elif args.weights.lower() == "imagenet":
         # Start from ImageNet trained weights
         weights_path = model.get_imagenet_weights()
+    elif args.weights == "BestOnRings"
+        weights_path = os.path.join(ROOT_DIR, "logs/BestOnRings/BestOnRings.h5")
     else:
         weights_path = args.weights
 
     # Load weights
     print("Loading weights ", weights_path)
     if args.weights.lower() == "coco":
+        # Exclude the last layers because they require a matching
+        # number of classes
+        model.load_weights(weights_path, by_name=True, exclude=[
+            "mrcnn_class_logits", "mrcnn_bbox_fc",
+            "mrcnn_bbox", "mrcnn_mask"])
+    if args.weights == "BestOnRings"
         # Exclude the last layers because they require a matching
         # number of classes
         model.load_weights(weights_path, by_name=True, exclude=[
