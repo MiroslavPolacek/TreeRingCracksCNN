@@ -2,3 +2,4 @@ logs
 datasets
 *.ipynb
 **.pyc
+**.stdout
