@@ -68,17 +68,17 @@ class BalloonConfig(Config):
     Derives from the base Config class and overrides some values.
     """
     # Give the configuration a recognizable name
-    NAME = "TreeRingCracks"
+    NAME = "TreeRingCracksTrans"
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU. V100 should have 32gb memory, seems can manage 6 images 1024x1024
-    IMAGES_PER_GPU = 6
+    IMAGES_PER_GPU = 4
 
     # Number of classes (including background)
     NUM_CLASSES = 1 + 1 + 1  # Background + ring + crack
 
     # Number of training steps per epoch rule of thumb taining images/images per GPU
-    STEPS_PER_EPOCH = 34
+    STEPS_PER_EPOCH = 224
 
     # Number of validation steps per epoch
     VALIDATION_STEPS = 1
@@ -157,7 +157,7 @@ class BalloonConfig(Config):
         "rpn_bbox_loss": 1.,
         "mrcnn_class_loss": 1.,
         "mrcnn_bbox_loss": 1.,
-        "mrcnn_mask_loss": 1.
+        "mrcnn_mask_loss": 2.
     }
 
     # Gradient norm clipping. Default 5.0. Some blog recommanded 10 with LR = 0.01
@@ -303,7 +303,7 @@ def train(model):
     augmentation = iaa.SomeOf((1, 3), [
             iaa.Fliplr(0.5),
             iaa.Flipud(0.5),
-            iaa.Crop(percent=(0, 0.1)),
+            #iaa.Crop(percent=(0, 0.1)),
             iaa.Affine(rotate=(-90, 90)),
             #iaa.Affine(shear=(-16, 16)), #stretches to the right nad the left
             #iaa.Affine(scale={"x": (0.5, 1.5), "y": (0.5, 1.5)}), #zooming in and out randomply per every axes by 20%
@@ -319,14 +319,21 @@ def train(model):
     print("Training network heads")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
-                epochs=10,
+                epochs=20,
                 augmentation=augmentation,
                 layers='heads') # 'heads' or 'all'
 
-    print("Training network heads")
+    print("Training all network")
+    model.train(dataset_train, dataset_val,
+                learning_rate=config.LEARNING_RATE,
+                epochs=40,
+                augmentation=augmentation,
+                layers='all') # 'heads' or 'all'
+
+    print("Training all network")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE/10,
-                epochs=50,
+                epochs=80,
                 augmentation=augmentation,
                 layers='all') # 'heads' or 'all'
 
