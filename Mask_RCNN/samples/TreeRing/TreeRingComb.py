@@ -68,7 +68,7 @@ class BalloonConfig(Config):
     Derives from the base Config class and overrides some values.
     """
     # Give the configuration a recognizable name
-    NAME = "TreeRingCracks"
+    NAME = "TreeRingCracksComb"
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU. V100 should have 32gb memory, seems can manage 6 images 1024x1024
@@ -78,7 +78,7 @@ class BalloonConfig(Config):
     NUM_CLASSES = 1 + 1 + 1  # Background + ring + crack
 
     # Number of training steps per epoch rule of thumb taining images/images per GPU
-    STEPS_PER_EPOCH = 50
+    STEPS_PER_EPOCH = 650
 
     # Number of validation steps per epoch
     VALIDATION_STEPS = 1
@@ -157,7 +157,7 @@ class BalloonConfig(Config):
         "rpn_bbox_loss": 1.,
         "mrcnn_class_loss": 1.,
         "mrcnn_bbox_loss": 1.,
-        "mrcnn_mask_loss": 1.
+        "mrcnn_mask_loss": 2.
     }
 
     # Gradient norm clipping. Default 5.0. Some blog recommanded 10 with LR = 0.01
@@ -302,14 +302,15 @@ def train(model):
     # Image augmentation
     # http://imgaug.readthedocs.io/en/latest/source/augmenters.html
 
-    augmentation = iaa.SomeOf((1, 3), [
+    augmentation = iaa.SomeOf((1, 5), [
             iaa.Fliplr(0.5),
             iaa.Flipud(0.5),
-            iaa.Crop(percent=(0, 0.1)),
-            iaa.Affine(rotate=(-90, 90)),
-            #iaa.Affine(shear=(-16, 16)), #stretches to the right nad the left
-            #iaa.Affine(scale={"x": (0.5, 1.5), "y": (0.5, 1.5)}), #zooming in and out randomply per every axes by 20%
-            iaa.GaussianBlur(sigma=(0.0, 0.5)),
+            iaa.Affine(rotate=90), # new to force more horizontal lines
+            iaa.Affine(rotate=(-90, 90), mode="edge"), # mode= "edge" ads straight lines in created empty space
+            #for this do one of
+            iaa.OneOf([iaa.CropAndPad(percent=(-0.3, 0.05), sample_independently=False, pad_mode="edge"),
+                       iaa.Crop(percent=(0, 0.05))]),
+            iaa.GaussianBlur(sigma=(0.0, 1.0)),
             iaa.Multiply((0.5, 1.2)), #changeing brightness
             iaa.Grayscale(alpha=(0.0, 0.9))
         ])
@@ -321,14 +322,28 @@ def train(model):
     print("Training network heads")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
-                epochs=10,
+                epochs=27,
                 augmentation=augmentation,
                 layers='heads') # 'heads' or 'all'
 
-    print("Training network heads")
+    print("Training 4+")
+    model.train(dataset_train, dataset_val,
+                learning_rate=config.LEARNING_RATE,
+                epochs=65,
+                augmentation=augmentation,
+                layers='4+') # 'heads' or 'all'
+
+    print("Train all")
+    model.train(dataset_train, dataset_val,
+                learning_rate=config.LEARNING_RATE,
+                epochs=300,
+                augmentation=augmentation,
+                layers='all') # 'heads' or 'all'
+
+    print("Train all lower learning rate")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE/10,
-                epochs=50,
+                epochs=400,
                 augmentation=augmentation,
                 layers='all') # 'heads' or 'all'
 

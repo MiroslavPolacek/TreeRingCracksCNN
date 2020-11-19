@@ -235,8 +235,8 @@ class BalloonDataset(utils.Dataset):
             #image = skimage.io.imread(image_path)
             #height, width = image.shape[:2]
 
-            height = a['size'].split('x')[0]
-            width = a['size'].split('x')[1]
+            width = a['size'].split('x')[0]
+            height = a['size'].split('x')[1]
 
             self.add_image(
                 "rings",
