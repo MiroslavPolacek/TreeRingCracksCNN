@@ -1,5 +1,5 @@
 """
-Calculate a lits of mAP at IoU > 0.5 and for every epoch in the folder
+Export images with detected masks
 --------------------------
 Usage:
 
@@ -80,7 +80,7 @@ model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)
 weights_path = args.weight
         # Load weights
 print("Loading weights")
-model.load_weights(weights_path, by_name=True) 
+model.load_weights(weights_path, by_name=True)
 #image_ids = dataset.image_ids
 
 #define class names
@@ -106,18 +106,18 @@ run_ID = os.path.split(run_split_1[0])[1]
 
 model_eval_DIR = os.path.join(ROOT_DIR, 'samples/TreeRing/model_eval')
 #print(model_eval_DIR)
-run_eval_DIR = os.path.join(model_eval_DIR,run_ID) 
+run_eval_DIR = os.path.join(model_eval_DIR,run_ID)
 weight_eval_DIR = os.path.join(run_eval_DIR, weight_name)
 
-if not os.path.exists(run_eval_DIR): #check if it already exists and if not make it 
+if not os.path.exists(run_eval_DIR): #check if it already exists and if not make it
     os.makedirs(run_eval_DIR)
 
-if not os.path.exists(weight_eval_DIR): #check if it already exists and if not make it 
+if not os.path.exists(weight_eval_DIR): #check if it already exists and if not make it
     os.makedirs(weight_eval_DIR)
 
 
 output_path = os.path.join(weight_eval_DIR, 'example_detections')
-if not os.path.exists(output_path): #check if it already exists and if not make it 
+if not os.path.exists(output_path): #check if it already exists and if not make it
     os.makedirs(output_path)
 
 for image_file in os.listdir(Image_folder_path):
@@ -125,7 +125,7 @@ for image_file in os.listdir(Image_folder_path):
         print(image_file)
         image_path = os.path.join(Image_folder_path, image_file)
         out_image_path = os.path.join(output_path, image_file)
-        image = skimage.io.imread(image_path) 
+        image = skimage.io.imread(image_path)
         results = model.detect([image], verbose=0)
         r = results[0]
         visualize_print.save_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, out_image_path, r['scores'])
@@ -135,10 +135,3 @@ for image_file in os.listdir(Image_folder_path):
         #plt.imshow(to_export)
         #plt.savefig(out_image_path)
         #plt.close()
-
-
-
-
-
-
- 

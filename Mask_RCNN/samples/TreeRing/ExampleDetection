@@ -13,4 +13,4 @@ source activate ~/.conda/envs/TreeRingCNN
 
 
 
-~/.conda/envs/TreeRingCNN/bin/python3 /groups/swarts/user/miroslav.polacek/CNN/Mask_RCNN/samples/TreeRing/example_detections.py  --weight=/groups/swarts/user/miroslav.polacek/CNN/Mask_RCNN/logs/traintestmlw220200727T1332/mask_rcnn_traintestmlw2_0957.h5
+~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/example_detections.py  --weight=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackstrans20201117T1416/mask_rcnn_treeringcrackstrans_0038.h5
