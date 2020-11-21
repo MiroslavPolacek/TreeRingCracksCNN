@@ -71,7 +71,7 @@ class BalloonConfig(Config):
     NAME = "TreeRingCracks"
 
     # We use a GPU with 12GB memory, which can fit two images.
-    # Adjust down if you use a smaller GPU. V100 should have 32gb memory, seems can manage 6 images 1024x1024
+    # Adjust down if you use a smaller GPU. V100 should have 32gb memory, seems can manage 4 images 1024x1024
     IMAGES_PER_GPU = 4
 
     # Number of classes (including background)
@@ -138,7 +138,7 @@ class BalloonConfig(Config):
 
     # Skip detections with < 90% confidence 0.9 was for baloons
     # for nucleus 0
-    DETECTION_MIN_CONFIDENCE = 0.50
+    DETECTION_MIN_CONFIDENCE = 0.90
 
     # Learning rate and momentum
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
