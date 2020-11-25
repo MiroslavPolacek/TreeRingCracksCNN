@@ -84,7 +84,7 @@ model.load_weights(weights_path, by_name=True)
 #image_ids = dataset.image_ids
 
 #define class names
-class_names = ['BG', 'ring']
+class_names = ['BG', 'ring', 'cracks']
 
 #######################################################################
 # Print picture example for seprate tricky dataset
