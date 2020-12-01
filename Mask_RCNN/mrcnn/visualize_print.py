@@ -69,7 +69,7 @@ def random_colors(N, bright=True):
     return colors
 
 
-def apply_mask(image, mask, color, alpha=0.1): 
+def apply_mask(image, mask, color, alpha=0.1):
     """Apply the given mask to the image.
     Alpha is the intentisty of fill mask on picture
     """
@@ -113,14 +113,14 @@ def save_instances(image, boxes, masks, class_ids, class_names, save_name,
 
     # Generate random colors
     colors = colors or random_colors(N)
-
+    print("checkpoint1")
     # Show area outside image boundaries.
     height, width = image.shape[:2]
     ax.set_ylim(height + 10, -10)
     ax.set_xlim(-10, width + 10)
     ax.axis('off')
     ax.set_title(title)
-
+    print("checkpint2")
     masked_image = image.astype(np.uint32).copy()
     for i in range(N):
         color = colors[i]
@@ -164,8 +164,11 @@ def save_instances(image, boxes, masks, class_ids, class_names, save_name,
             p = Polygon(verts, facecolor="none", edgecolor=color)
             ax.add_patch(p)
     ax.imshow(masked_image.astype(np.uint8))
+    print("checkpoint3")
     if auto_show:
+        print("checkpoint4")
         plt.show() #I modified original code here Miro
+        print("checkpoint5")
     return(masked_image.astype(np.uint8))
 
 

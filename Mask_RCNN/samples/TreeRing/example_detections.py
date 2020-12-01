@@ -4,9 +4,10 @@ Export images with detected masks
 Usage:
 
 THIS TO TEST RUNS
-conda activate TreeRingCNN &&
-cd /Users/miroslav.polacek/Dropbox\ \(VBC\)/Group\ Folder\ Swarts/Research/CNNRings/Mask_RCNN/samples/TreeRing &&
-python3 example_detections.py --weight=/Users/miroslav.polacek/Dropbox\ \(VBC\)/Group\ Folder\ Swarts/Research/CNNRings/Mask_RCNN/logs/treeringnewaugndmaksloss20200405T0918/mask_rcnn_treeringnewaugndmaksloss_0674.h5
+conda activate TreeRingCNNtest &&
+cd ~/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
+python3 example_detections.py --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
+
 """
 #######################################################################
 #Arguments
@@ -92,7 +93,7 @@ class_names = ['BG', 'ring', 'cracks']
 
 # i will comment this now to speed this up
 
-Image_folder_path = '/groups/swarts/user/miroslav.polacek/CNN/transformed_Rins_to-test'
+Image_folder_path = '/Users/miroslav.polacek/Pictures/mini_example'
 
 #get folder path and make folder
 run_path = args.weight
