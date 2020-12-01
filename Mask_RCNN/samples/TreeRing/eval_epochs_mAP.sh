@@ -13,4 +13,4 @@ source activate ~/.conda/envs/TreeRingCNN
 
 
 
-time ~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/eval_epochs_mAP.py --dataset=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/Old_val  --weight_folder=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackstrans20201117T1416
+time ~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/eval_epochs_mAP.py --dataset=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/Old_val  --weight_folder=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/
