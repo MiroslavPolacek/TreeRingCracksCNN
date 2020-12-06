@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:RTX:1
+#SBATCH --gres=gpu:V100:1
 #SBATCH --partition=g
 #SBATCH --mem=112G
 #SBATCH --qos=long

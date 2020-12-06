@@ -4,9 +4,9 @@ Calculate a lits of mAP at IoU > 0.5 and for every epoch in the folder
 Usage:
 
 THIS TO TEST RUNS
-conda activate TreeRingCNNtest &&
-cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
-python3 evaluate_weights.py  --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini/  --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
+conda activate TreeRingCNN &&
+cd /Users/miroslav.polacek/Dropbox\ \(VBC\)/Group\ Folder\ Swarts/Research/CNNRings/Mask_RCNN/samples/TreeRing &&
+python3 evaluate_weights_with_rotations.py  --dataset=/Users/miroslav.polacek/Dropbox\ \(VBC\)/Group\ Folder\ Swarts/Research/CNNRings/Mask_RCNN/datasets/treering  --weight=/Users/miroslav.polacek/Dropbox\ \(VBC\)/Group\ Folder\ Swarts/Research/CNNRings/Mask_RCNN/logs/JustToTest/mask_rcnn_treeringnewaug_0095.h5
 """
 #######################################################################
 #Arguments
@@ -32,7 +32,10 @@ args = parser.parse_args()
 
 import os
 import sys
-#import re
+import random
+import math
+import re
+import time
 import skimage
 import cv2
 import pandas as pd
@@ -83,15 +86,16 @@ weights_path = args.weight
 print("Loading weights")
 model.load_weights(weights_path, by_name=True)
 image_ids = dataset.image_ids
-# Get all class ids from the dataset
 
 #################################################################################
 # Precision and recall for mask, first value of TP...should be for score of 0.5
 #################################################################################
-def TP_FP_FN_per_score_mask(gt_mask, pred_mask, scores, IoU_treshold):
-
+def TP_FP_NF_per_score_mask(gt_mask, pred_mask, scores, IoU_treshold):
     #loop scores
+
     score_range = np.arange(0.5, 1.0, 0.05)
+
+
 
         #print(gt_r)
         #print(pred_r)
@@ -106,38 +110,90 @@ def TP_FP_FN_per_score_mask(gt_mask, pred_mask, scores, IoU_treshold):
         score_ids = np.where(scores > SR)[0] #Ids for predictions above certain score threshold
         #print(score_ids)
         mask_SR = np.take(pred_mask, score_ids, axis=2)
-        #print('mask_SR.shape:', mask_SR.shape)
-        if mask_SR.shape[-1]==0:
-            TPs.append(0)
-            FPs.append(0)
-            FNs.append(0)
-        else:
-            mask_matrix = utils.compute_overlaps_masks(gt_mask, mask_SR)
-            #print("mask_matrix", mask_matrix)
-        #for every score range callculate TP, ...append by the socre ranges
-            # making binary numpy array with IoU treshold
-            mask_matrix_binary = np.where(mask_matrix > IoU_treshold, 1, 0)
-            #print (mask_matrix_binary)
+        #print('mask_SR:', mask_SR.shape)
+        mask_matrix = utils.compute_overlaps_masks(gt_mask, mask_SR)
 
-            #GT rings and predicted rigs
-            gt_r = len(mask_matrix)
-            pred_r = len(mask_matrix[0])
+    #for every score range callculate TP, ...append by the socre ranges
+        # making binary numpy array with IoU treshold
+        mask_matrix_binary = np.where(mask_matrix > IoU_treshold, 1, 0)
+        #print (mask_matrix_binary)
 
-            #TP
-            sum_truth = np.sum(mask_matrix_binary, axis=1)
-            sum_truth_binary = np.where(sum_truth > 0, 1, 0)
-            TP = np.sum(sum_truth_binary)
-            TPs.append(TP)
-            #print('TPs:', TPs)
-            #FP
-            sum_pred = np.sum(mask_matrix_binary, axis=0)
-            sum_pred_binary = np.where(sum_pred > 0, 1, 0)
-            FP = pred_r - np.sum(sum_pred_binary)
-            FPs.append(FP)
-            #print('FP:', FP)
-            #FN
-            FN = gt_r - TP
-            FNs.append(FN)
+
+        #GT rings and predicted rigs
+        gt_r = len(mask_matrix)
+        pred_r = len(mask_matrix[0])
+
+        #TP
+        sum_truth = np.sum(mask_matrix_binary, axis=1)
+        sum_truth_binary = np.where(sum_truth > 0, 1, 0)
+        TP = np.sum(sum_truth_binary)
+        TPs.append(TP)
+        #print('TP:', TP)
+        #FP
+        sum_pred = np.sum(mask_matrix_binary, axis=0)
+        sum_pred_binary = np.where(sum_pred > 0, 1, 0)
+        FP = pred_r - np.sum(sum_pred_binary)
+        FPs.append(FP)
+        #print('FP:', FP)
+        #FN
+        FN = gt_r - TP
+        FNs.append(FN)
+        #print('FN:', FN)
+    #put together and sum up TP...per range
+
+    return TPs, FPs, FNs, score_range
+
+#################################################################################
+# Precision and recall for bboxes, first value of TP...should be for score of 0.5
+#################################################################################
+def TP_FP_NF_per_score_bbox(gt_bbox, pred_bbox, scores, IoU_treshold):
+    #loop scores
+
+    score_range = np.arange(0.5, 1.0, 0.05)
+
+
+
+        #print(gt_r)
+        #print(pred_r)
+    gt_rings = []
+    pred_rings = []
+    TPs = []
+    FPs = []
+    FNs = []
+
+    for SR in score_range:
+        #print(SR)
+        score_ids = np.where(scores > SR)[0] #Ids for predictions above certain score threshold
+        #print(score_ids)
+        bbox_SR = np.take(pred_bbox, score_ids, axis=0)
+        #print('mask_SR:', mask_SR.shape)
+        bbox_matrix = utils.compute_overlaps(gt_bbox, bbox_SR)
+
+    #for every score range callculate TP, ...append by the socre ranges
+        # making binary numpy array with IoU treshold
+        bbox_matrix_binary = np.where(bbox_matrix > IoU_treshold, 1, 0)
+        #print (bbox_matrix_binary)
+
+
+        #GT rings and predicted rigs
+        gt_r = len(bbox_matrix)
+        pred_r = len(bbox_matrix[0])
+
+        #TP
+        sum_truth = np.sum(bbox_matrix_binary, axis=1)
+        sum_truth_binary = np.where(sum_truth > 0, 1, 0)
+        TP = np.sum(sum_truth_binary)
+        TPs.append(TP)
+        #print('TP:', TP)
+        #FP
+        sum_pred = np.sum(bbox_matrix_binary, axis=0)
+        sum_pred_binary = np.where(sum_pred > 0, 1, 0)
+        FP = pred_r - np.sum(sum_pred_binary)
+        FPs.append(FP)
+        #print('FP:', FP)
+        #FN
+        FN = gt_r - TP
+        FNs.append(FN)
         #print('FN:', FN)
     #put together and sum up TP...per range
 
@@ -220,105 +276,64 @@ def modify_flat_mask(mask):
 
 
     return result_mask
-
-###########################################################################
-# Calculate AP gorup of indexes. General and per class.
-###########################################################################
-def mAP_group(image, image_meta, gt_class_id, gt_bbox, gt_mask, r):
-    AP_general = []
-    AP_names = ["mAP", "AP50", "APlist","mAP_ring", "AP50_ring", "APlist_ring","mAP_crack", "AP50_crack", "APlist_crack","mAP_resin", "AP50_resin", "APlist_resin","mAP_pith", "AP50_pith", "APlist_pith" ]
-    # if no mask is detected
-    if r['masks'].shape[-1] == 0:
-        AP_general = [0,0,[0]*10]*5
-    else:
-    # mAP, AP50 for all classes
-        AP_list = compute_ap_range_list(gt_bbox, gt_class_id, gt_mask, r['rois'], r['class_ids'], r['scores'], r['masks'], verbose=0)
-        mAP = np.array(AP_list).mean()
-        AP50 = AP_list[0]
-        AP_general = [mAP, AP50, AP_list]
-        # for each class_id
-        for i in range(1,5):
-            AP_list = compute_ap_range_list(gt_bbox[gt_class_id==i], gt_class_id[gt_class_id==i], gt_mask[:,:,gt_class_id==i], r['rois'][r['class_ids']==i], r['class_ids'][r['class_ids']==i], r['scores'][r['class_ids']==i], r['masks'][:,:,r['class_ids']==i], verbose=0)
-            mAP = np.array(AP_list).mean()
-            AP50 = AP_list[0]
-            AP_general.extend([mAP, AP50, AP_list])
-
-    return AP_general, AP_names #mAP_group_values #should be a list of lists of names and values
-###########################################################################
-# Calculate TP_FP_NF_per_score_mask. General and per class.
-###########################################################################
-def TP_FP_FN_group(gt_mask, gt_class_id, r, IoU_treshold=0.5):
-    TP_FP_FN_general = []
-    TP_FP_FN_names = ["score_range", "TP", "FP", "FN","TP_ring", "FP_ring", "FN_ring","TP_crack", "FP_crack", "FN_crack","TP_resin", "FP_resin", "FN_resin", "TP_pith", "FP_pith", "FN_pith"]
-    # if no mask is detected
-    if r['masks'].shape[-1] == 0:
-         TP_FP_FN_general = [[0]*10]*15
-    else:
-        # for all classes
-        TP, FP, FN, score_range = TP_FP_FN_per_score_mask(gt_mask, r['masks'], r['scores'], IoU_treshold=IoU_treshold)
-        TP_FP_FN_general = [score_range, TP, FP, FN]
-        for i in range(1,5):
-            TP, FP, FN, score_range = TP_FP_FN_per_score_mask(gt_mask[:,:,gt_class_id==i], r['masks'][:,:,r['class_ids']==i], r['scores'][r['class_ids']==i], IoU_treshold=IoU_treshold)
-            TP_FP_FN_general.extend([TP, FP, FN])
-
-    return TP_FP_FN_general, TP_FP_FN_names
-
-###########################################################################
-# Calculate IoU general and per class.
-###########################################################################
-def IoU_group(gt_mask, gt_class_id, r):
-    IoU_general = []
-    IoU_names = ["IoU", "IoU_ring", "IoU_crack", "IoU_resin", "IoU_pith"]
-    # if no mask is detected
-    if r['masks'].shape[-1] == 0:
-        IoU_general = [0]*5
-    else:
-
-        IoU_m = utils.compute_overlaps_masks(gt_mask, r['masks'])
-        IoU_m = np.nan_to_num(np.mean(IoU_m)) #change nans to 0
-    return IoU_general
 ###########################################################################
 # now calculate values for whole dataset
 ###########################################################################
-# variables to calculate
-## AP group
+# mAP, IoU
 mAP = []
-AP50 = []
+mask_IoU = []
+bbox_IoU = []
+
+mAP90 = []
+mask_IoU90 = []
+bbox_IoU90 = []
+
+mAP45 = []
+mask_IoU45 = []
+bbox_IoU45 = []
+
+# TPs, mask
+TPs_mask = []
+FPs_mask = []
+FNs_mask = []
+
+TPs90_mask = []
+FPs90_mask = []
+FNs90_mask = []
+
+TPs45_mask = []
+FPs45_mask = []
+FNs45_mask = []
+
+# TPs_mask_combined
+TPs_combined = []
+FPs_combined = []
+FNs_combined = []
+
+# TPs, bbox
+TPs_bbox = []
+FPs_bbox = []
+FNs_bbox = []
+
+TPs90_bbox = []
+FPs90_bbox = []
+FNs90_bbox = []
+
+TPs45_bbox = []
+FPs45_bbox = []
+FNs45_bbox = []
+
+# APlist for graph
 APlist = []
-mAP_ring = []
-AP50_ring = []
-APlist_ring = []
-mAP_crack = []
-AP50_crack = []
-APlist_crack = []
-mAP_resin = []
-AP50_resin = []
-APlist_resin =[]
-mAP_pith = []
-AP50_pith = []
-APlist_pith = []
+APlist90 = []
+APlist45 = []
 
-## TP_FP_FN_group
-TP = []
-FP = []
-FN = []
-TP_ring = []
-FP_ring = []
-FN_ring = []
-TP_crack = []
-FP_crack = []
-FN_crack = []
-TP_resin = []
-FP_resin = []
-FN_resin = []
-TP_pith = []
-FP_pith = []
-FN_pith = []
+# Iou for combined mask
+IoU_combined_mask = []
 
-# Main structure
 for image_id in image_ids:
+    ## Load the ground truth
 
-    ## Load the ground truth for the image
     image, image_meta, gt_class_id, gt_bbox, gt_mask =\
         modellib.load_image_gt(dataset, config,
                                image_id, use_mini_mask=False)
@@ -329,47 +344,6 @@ for image_id in image_ids:
 ###### Detect image in normal orientation
     results = model.detect([image], verbose=0)
     r = results[0]
-    #print("check shapes", gt_class_id, gt_mask[:,:,gt_class_id==1].shape)
-    # pass this r to the functions
-    AP_general, AP_names = mAP_group(image, image_meta, gt_class_id, gt_bbox, gt_mask, r)
-
-    mAP.append(AP_general[AP_names.index("mAP")])
-    AP50.append(AP_general[AP_names.index("AP50")])
-    APlist.append(AP_general[AP_names.index("APlist")])
-    mAP_ring.append(AP_general[AP_names.index("mAP_ring")])
-    AP50_ring.append(AP_general[AP_names.index("AP50_ring")])
-    APlist_ring.append(AP_general[AP_names.index("APlist_ring")])
-    mAP_crack.append(AP_general[AP_names.index("mAP_crack")])
-    AP50_crack.append(AP_general[AP_names.index("AP50_crack")])
-    APlist_crack.append(AP_general[AP_names.index("APlist_crack")])
-    mAP_resin.append(AP_general[AP_names.index("mAP_resin")])
-    AP50_resin.append(AP_general[AP_names.index("AP50_resin")])
-    APlist_resin.append(AP_general[AP_names.index("APlist_resin")])
-    mAP_pith.append(AP_general[AP_names.index("mAP_pith")])
-    AP50_pith.append(AP_general[AP_names.index("AP50_pith")])
-    APlist_pith.append(AP_general[AP_names.index("APlist_pith")])
-
-    TP_general, TP_names = TP_FP_FN_group(gt_mask, gt_class_id, r, IoU_treshold=0.5)
-
-    TP.append(TP_general[TP_names.index("TP")])
-    FP.append(TP_general[TP_names.index("FP")])
-    FN.append(TP_general[TP_names.index("FN")])
-    TP_ring.append(TP_general[TP_names.index("TP_ring")])
-    FP_ring.append(TP_general[TP_names.index("FP_ring")])
-    FN_ring.append(TP_general[TP_names.index("FN_ring")])
-    TP_crack.append(TP_general[TP_names.index("TP_crack")])
-    FP_crack.append(TP_general[TP_names.index("FP_crack")])
-    FN_crack.append(TP_general[TP_names.index("FN_crack")])
-    TP_resin.append(TP_general[TP_names.index("TP_resin")])
-    FP_resin.append(TP_general[TP_names.index("FP_resin")])
-    FN_resin.append(TP_general[TP_names.index("FN_resin")])
-    TP_pith.append(TP_general[TP_names.index("TP_pith")])
-    FP_pith.append(TP_general[TP_names.index("FP_pith")])
-    FN_pith.append(TP_general[TP_names.index("FN_pith")])
-    print("TP_ring", TP_ring)
-    print("FP_crack", FP_crack)
-    print("FP_ring", FP_ring)
-    """
     if r['masks'].shape[-1] == 0:
         mAP.append(0)
         mask_IoU.append(0)
@@ -399,6 +373,11 @@ for image_id in image_ids:
         IoU_m = np.nan_to_num(np.mean(IoU_m)) #change nans to 0
         mask_IoU.append(IoU_m)
 
+        #compute bbox IoU
+        IoU_bbox = utils.compute_overlaps(gt_bbox,r['rois'])
+        IoU_bbox = np.nan_to_num(np.mean(IoU_bbox))
+        bbox_IoU.append(IoU_bbox)
+
         #compute TP, FP, FN for mask
         TP, FP, FN, score_range = TP_FP_NF_per_score_mask(gt_mask, r['masks'], r['scores'], IoU_treshold=0.3)
         #print(TP)
@@ -408,6 +387,15 @@ for image_id in image_ids:
         FPs_mask.append(FP)
         FNs_mask.append(FN)
 
+        #compute TP, FP, FN for bbox
+        TP, FP, FN, score_range = TP_FP_NF_per_score_bbox(gt_bbox, r['rois'], r['scores'], IoU_treshold=0.3)
+        #print(TP)
+        #print(FP)
+        #print(FN)
+        TPs_bbox.append(TP)
+        FPs_bbox.append(FP)
+        FNs_bbox.append(FN)
+
         #APlist for graph
         ap = compute_ap_range_list(
             gt_bbox, gt_class_id, gt_mask,
@@ -415,10 +403,9 @@ for image_id in image_ids:
             verbose=0)
         #print(ap)
         APlist.append(ap)
-    """
+
 
 ###### DETECT IMAGE 90degree
-    """
     ### rotate image, detect, rotate mask back
     image_90 = skimage.transform.rotate(image, 90, preserve_range=True).astype(np.uint8)
     #print('image90 shape:', image_90.shape)
@@ -426,8 +413,6 @@ for image_id in image_ids:
     #plt.show()
     results = model.detect([image_90], verbose=0)
     r = results[0]
-    """
-    """
     if r['masks'].shape[-1] == 0:
         mAP90.append(0)
         mask_IoU90.append(0)
@@ -471,6 +456,11 @@ for image_id in image_ids:
         IoU_m = np.nan_to_num(np.mean(IoU_m)) #change nans to 0
         mask_IoU90.append(IoU_m)
 
+        #compute bbox IoU
+        IoU_bbox = utils.compute_overlaps(gt_bbox,extracted_bboxes)
+        IoU_bbox = np.nan_to_num(np.mean(IoU_bbox))
+        bbox_IoU90.append(IoU_bbox)
+
         #compute TP, FP, FN for mask
         TP, FP, FN, score_range = TP_FP_NF_per_score_mask(gt_mask, mask_back, r['scores'], IoU_treshold=0.3)
         #print(TP)
@@ -480,6 +470,14 @@ for image_id in image_ids:
         FPs90_mask.append(FP)
         FNs90_mask.append(FN)
 
+        #compute TP, FP, FN for bbox
+        TP, FP, FN, score_range = TP_FP_NF_per_score_bbox(gt_bbox, extracted_bboxes, r['scores'], IoU_treshold=0.3)
+        #print(TP)
+        #print(FP)
+        #print(FN)
+        TPs90_bbox.append(TP)
+        FPs90_bbox.append(FP)
+        FNs90_bbox.append(FN)
 
         #APlist for graph
         ap = compute_ap_range_list(
@@ -488,9 +486,8 @@ for image_id in image_ids:
             verbose=0)
         #print(ap)
         APlist90.append(ap)
-    """
+
 ###### DETECT IMAGE 45degree
-    """
     ### rotate image, detect
     #print('img_shape:', image.shape)
     #plt.imshow(image)
@@ -501,8 +498,6 @@ for image_id in image_ids:
     #plt.show()
     results = model.detect([image_45], verbose=0)
     r = results[0]
-    """
-    """
     # if mask is empty make all results zeroes
     if r['masks'].shape[-1] == 0:
         mAP45.append(0)
@@ -557,6 +552,11 @@ for image_id in image_ids:
         IoU_m = np.nan_to_num(np.mean(IoU_m)) #change nans to 0
         mask_IoU45.append(IoU_m)
 
+        #compute bbox IoU
+        IoU_bbox = utils.compute_overlaps(gt_bbox,extracted_bboxes)
+        IoU_bbox = np.nan_to_num(np.mean(IoU_bbox))
+        bbox_IoU45.append(IoU_bbox)
+
         #compute TP, FP, FN for mask
         TP, FP, FN, score_range = TP_FP_NF_per_score_mask(gt_mask, mask_back, r['scores'], IoU_treshold=0.3)
         #print(TP)
@@ -566,6 +566,15 @@ for image_id in image_ids:
         FPs45_mask.append(FP)
         FNs45_mask.append(FN)
 
+        #compute TP, FP, FN for bbox
+        TP, FP, FN, score_range = TP_FP_NF_per_score_bbox(gt_bbox, extracted_bboxes, r['scores'], IoU_treshold=0.3)
+        #print(TP)
+        #print(FP)
+        #print(FN)
+        TPs45_bbox.append(TP)
+        FPs45_bbox.append(FP)
+        FNs45_bbox.append(FN)
+
         #APlist for graph
         ap = compute_ap_range_list(
             gt_bbox, gt_class_id, gt_mask,
@@ -573,10 +582,9 @@ for image_id in image_ids:
             verbose=0)
         #print(ap)
         APlist45.append(ap)
-    """
+
 ###### COMBINE ALL THE MASKS TO ONE AND CLACULATE IoU
     #normal flatten
-    """
     mask_normal_flat = np.zeros(shape=(imgheight, imgheight))
     nmasks = mask_normal.shape[2]
     for m in range(0,nmasks):
@@ -651,13 +659,11 @@ for image_id in image_ids:
     #FN
     FN = gt_r - TP
     FNs_combined.append(FN)
-    """
-# THIS SHOULD BE SIMPLIFIED AND WRITEN AND DONE WITH MATRICES FROM PREVIOUS STEPS
-"""
 #calculate averages for all images
 #0
 mAP = np.mean(mAP)
 mask_IoU = np.mean(mask_IoU)
+bbox_IoU = np.mean(bbox_IoU)
 
 # Prec, recall for mask
 print('TPs_mask',TPs_mask)
@@ -671,10 +677,20 @@ FNs_mask = np.array(FNs_mask)
 SEN_mask = TPs_mask/(TPs_mask+FNs_mask)
 PREC_mask = TPs_mask/(TPs_mask+FPs_mask)
 #print('SEN_mask:', SEN_mask)
+# Prec, recall for bbox
+TPs_bbox = np.sum(TPs_bbox, axis=0)
+FPs_bbox = np.sum(FPs_bbox, axis=0)
+FNs_bbox = np.sum(FNs_bbox, axis=0)
 
 #print('TP:', TPs)
 #print('FP:', FPs)
 #print('FN:', FNs)
+
+TPs_bbox = np.array(TPs_bbox)
+FPs_bbox = np.array(FPs_bbox)
+FNs_bbox = np.array(FNs_bbox)
+SEN_bbox = TPs_bbox/(TPs_bbox+FNs_bbox)
+PREC_bbox = TPs_bbox/(TPs_bbox+FPs_bbox)
 
 # Prec and recall for combined
 print('TPs_combined', TPs_combined)
@@ -682,6 +698,7 @@ TPs_combined = np.sum(TPs_combined)
 FPs_combined = np.sum(FPs_combined)
 FNs_combined = np.sum(FNs_combined)
 print('TPs_combined', TPs_combined)
+
 
 SEN_combined = TPs_combined/(TPs_combined+FNs_combined)
 PREC_combined = TPs_combined/(TPs_combined+FPs_combined)
@@ -729,6 +746,7 @@ PREC90_bbox = TPs90_bbox/(TPs90_bbox+FPs90_bbox)
 #APlist for graph
 APlist90 = np.mean(APlist90, axis=0)
 
+
 #45
 #print('mAP45:', mAP45)
 mAP45 = np.mean(mAP45)
@@ -751,17 +769,30 @@ FNs45_mask = np.array(FNs45_mask)
 SEN45_mask = TPs45_mask/(TPs45_mask+FNs45_mask)
 PREC45_mask = TPs45_mask/(TPs45_mask+FPs45_mask)
 
+# Prec, recall for bbox
+TPs45_bbox = np.sum(TPs45_bbox, axis=0)
+FPs45_bbox = np.sum(FPs45_bbox, axis=0)
+FNs45_bbox = np.sum(FNs45_bbox, axis=0)
+
+#print('TP:', TPs)
+#print('FP:', FPs)
+#print('FN:', FNs)
+
+TPs45_bbox = np.array(TPs45_bbox)
+FPs45_bbox = np.array(FPs45_bbox)
+FNs45_bbox = np.array(FNs45_bbox)
+SEN45_bbox = TPs45_bbox/(TPs45_bbox+FNs45_bbox)
+PREC45_bbox = TPs45_bbox/(TPs45_bbox+FPs45_bbox)
+
 #APlist for graph
 APlist45 = np.mean(APlist45, axis=0)
 # combined mask
 IoU_combined_mask = np.mean(IoU_combined_mask)
 #print('IoU_combined:', IoU_combined_mask)
-"""
+
 #######################################################################
 #Save output
 #######################################################################
-# SOLVE THIS AT THE END SO TESTS CAN RUN
-"""
 #get folder path and make folder
 run_path = args.weight
 #print(run_path)
@@ -786,10 +817,10 @@ if not os.path.exists(weight_eval_DIR): #check if it already exists and if not m
 #save table
 df = pd.DataFrame()
 
-df['variables'] = ['mAP', 'mask_IoU', 'bbox_IoU', 'SEN_mask', 'PREC_mask', 'TPs_mask', 'FPs_mask', 'FNs_mask'] #names of all the variables
-df['normal'] = [mAP, mask_IoU, bbox_IoU, SEN_mask[0], PREC_mask[0], TPs_mask[0], FPs_mask[0], FNs_mask[0]]  #values for all the variables
-df['90d'] = [mAP90, mask_IoU90, bbox_IoU90, SEN90_mask[0], PREC90_mask[0], TPs90_mask[0], FPs90_mask[0], FNs90_mask[0]]  #values for all the variables
-df['45d'] = [mAP45, mask_IoU45, bbox_IoU45, SEN45_mask[0], PREC45_mask[0], TPs45_mask[0], FPs45_mask[0], FNs45_mask[0]]  #values for all the variables
+df['variables'] = ['mAP', 'mask_IoU', 'bbox_IoU', 'SEN_mask', 'PREC_mask', 'TPs_mask', 'FPs_mask', 'FNs_mask', 'SEN_bbox', 'PREC_bbox', 'TPs_bbox', 'FPs_bbox', 'FNs_bbox'] #names of all the variables
+df['normal'] = [mAP, mask_IoU, bbox_IoU, SEN_mask[0], PREC_mask[0], TPs_mask[0], FPs_mask[0], FNs_mask[0], SEN_bbox[0], PREC_bbox[0], TPs_bbox[0], FPs_bbox[0], FNs_bbox[0]]  #values for all the variables
+df['90d'] = [mAP90, mask_IoU90, bbox_IoU90, SEN90_mask[0], PREC90_mask[0], TPs90_mask[0], FPs90_mask[0], FNs90_mask[0], SEN90_bbox[0], PREC90_bbox[0], TPs90_bbox[0], FPs90_bbox[0], FNs90_bbox[0]]  #values for all the variables
+df['45d'] = [mAP45, mask_IoU45, bbox_IoU45, SEN45_mask[0], PREC45_mask[0], TPs45_mask[0], FPs45_mask[0], FNs45_mask[0], SEN45_bbox[0], PREC45_bbox[0], TPs45_bbox[0], FPs45_bbox[0], FNs45_bbox[0]]  #values for all the variables
 # average all to a last colum
 df['average'] = df.mean(numeric_only=True, axis=1)
 df['combined'] = [np.nan, IoU_combined_mask, np.nan, SEN_combined, PREC_combined, TPs_combined, FPs_combined, FNs_combined, np.nan, np.nan, np.nan, np.nan, np.nan]
@@ -842,5 +873,40 @@ df_PrecRec['Prec_bbox'] = PREC_bbox
 df_PrecRec['Rec_bbox'] = SEN_bbox
 df_PrecRec['Prec90_mask'] = PREC90_mask
 df_PrecRec['Rec90_mask'] = SEN90_mask
+df_PrecRec['Prec90_bbox'] = PREC90_bbox
+df_PrecRec['Rec90_bbox'] = SEN90_bbox
+df_PrecRec['Prec45_mask'] = PREC45_mask
+df_PrecRec['Rec45_mask'] = SEN45_mask
+df_PrecRec['Prec45_bbox'] = PREC45_bbox
+df_PrecRec['Rec45_bbox'] = SEN45_bbox
 df_PrecRec.to_csv(os.path.join(weight_eval_DIR, 'PrecRec_graph_data_{}.csv'.format(weight_name)))
+
+#######################################################################
+# Print picture example for seprate tricky dataset
+#######################################################################
+
+# i will comment this now to speed this up
+"""
+Image_folder_path = '/Users/miroslav.polacek/Desktop/Rings_to_test'
+
+output_path = os.path.join(weight_eval_DIR, 'example_detections')
+if not os.path.exists(output_path): #check if it already exists and if not make it
+    os.makedirs(output_path)
+
+for image_file in os.listdir(Image_folder_path):
+    if image_file.endswith('.tif') or image_file.endswith('.jpg'):
+        print(image_file)
+        image_path = os.path.join(Image_folder_path, image_file)
+        out_image_path = os.path.join(output_path, image_file)
+        image = skimage.io.imread(image_path)
+        results = model.detect([image], verbose=0)
+        r = results[0]
+        visualize_print.save_instances(image, r['rois'], r['masks'], r['class_ids'], dataset.class_names, out_image_path, r['scores'])
+        #plt.figure(figsize=(30,30))
+        #plt.axis('off')
+        #plt.title(image_file)
+        #plt.imshow(to_export)
+        #plt.savefig(out_image_path)
+        #plt.close()
+
 """
