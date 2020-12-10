@@ -116,7 +116,8 @@ def TP_FP_FN_per_score_mask(gt_mask, pred_mask, scores, IoU_treshold):
         #print (mask_matrix_binary)
 
         #GT rings and predicted rigs
-        if len(mask_matrix[0])==0:
+        print(mask_matrix.shape)
+        if mask_matrix.shape[0]==0:
             TPs.append(0)
             FPs.append(0)
             FNs.append(0)
