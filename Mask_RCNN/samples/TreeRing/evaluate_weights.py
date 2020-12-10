@@ -577,7 +577,7 @@ for image_id in image_ids:
     results = model.detect([image_45], verbose=0)
     r = results[0]
     if r['masks'].shape[-1] == 0:
-        mask_45_back = np.zeros(shape=(imgheight, imgheight,1))
+        mask_45_back = np.zeros(shape=(imgheight, imgheight,0))
 
     else:
         # rotate the mask back
