@@ -578,7 +578,7 @@ for image_id in image_ids:
     r = results[0]
     if r['masks'].shape[-1] == 0:
         mask_45_back = np.zeros(shape=(imgheight, imgheight,0))
-
+        mask_45_classes = [0]
     else:
         # rotate the mask back
         maskr2_back = skimage.transform.rotate(r['masks'], angle = -45, resize=False)
