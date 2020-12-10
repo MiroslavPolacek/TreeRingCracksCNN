@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:V100:1
+#SBATCH --gres=gpu:RTX:1
 #SBATCH --partition=g
 #SBATCH --mem=32G
 #SBATCH --qos=medium
@@ -13,4 +13,4 @@ source activate ~/.conda/envs/TreeRingCNN
 
 
 
-time ~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/eval_epochs_mAP.py --dataset=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/Old_val  --weight_folder=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/
+time ~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/eval_epochs_mAP.py --dataset=/groups/swarts/user/miroslav.polacek/CNN/val_new  --weight_folder=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/

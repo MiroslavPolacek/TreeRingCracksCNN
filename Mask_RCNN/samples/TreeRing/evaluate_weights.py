@@ -178,7 +178,12 @@ def modify_flat_mask(mask):
     uint8binary = binary_mask.astype(np.uint8).copy()
 
     #gray_image = cv2.cvtColor(binary_mask, cv2.COLOR_BGR2GRAY)
-    im, contours, hierarchy = cv2.findContours(uint8binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+    # Older version of openCV has slightly different syntax i adjusted for it here
+    if int(cv2.__version__.split(".")[0]) < 4:
+        _, contours, _ = cv2.findContours(uint8binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+    else:
+        contours, _ = cv2.findContours(uint8binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+    #print('contour_shape:', len(contours))
     #print('contours.shape:', contours)
     #### in a loop through polygons turn every one into binary mask of propper dimension and append
     imgheight, imgwidth = mask.shape[:2]
@@ -224,21 +229,21 @@ def modify_flat_mask(mask):
 ###########################################################################
 # Calculate AP gorup of indexes. General and per class.
 ###########################################################################
-def mAP_group(image, image_meta, gt_class_id, gt_bbox, gt_mask, r):
+def mAP_group(image, gt_class_id, gt_bbox, gt_mask, pred_bbox, pred_mask, pred_class_id, pred_scores):
     AP_general = []
     AP_names = ["mAP", "AP50", "APlist","mAP_ring", "AP50_ring", "APlist_ring","mAP_crack", "AP50_crack", "APlist_crack","mAP_resin", "AP50_resin", "APlist_resin","mAP_pith", "AP50_pith", "APlist_pith" ]
     # if no mask is detected
-    if r['masks'].shape[-1] == 0:
+    if pred_mask.shape[-1] == 0:
         AP_general = [0,0,[0]*10]*5
     else:
     # mAP, AP50 for all classes
-        AP_list = compute_ap_range_list(gt_bbox, gt_class_id, gt_mask, r['rois'], r['class_ids'], r['scores'], r['masks'], verbose=0)
+        AP_list = compute_ap_range_list(gt_bbox, gt_class_id, gt_mask, pred_bbox, pred_class_id, pred_scores, pred_mask, verbose=0)
         mAP = np.array(AP_list).mean()
         AP50 = AP_list[0]
         AP_general = [mAP, AP50, AP_list]
         # for each class_id
         for i in range(1,5):
-            AP_list = compute_ap_range_list(gt_bbox[gt_class_id==i], gt_class_id[gt_class_id==i], gt_mask[:,:,gt_class_id==i], r['rois'][r['class_ids']==i], r['class_ids'][r['class_ids']==i], r['scores'][r['class_ids']==i], r['masks'][:,:,r['class_ids']==i], verbose=0)
+            AP_list = compute_ap_range_list(gt_bbox[gt_class_id==i], gt_class_id[gt_class_id==i], gt_mask[:,:,gt_class_id==i], pred_bbox[pred_class_id==i], pred_class_id[pred_class_id==i], pred_scores[pred_class_id==i], pred_mask[:,:,pred_class_id==i], verbose=0)
             mAP = np.array(AP_list).mean()
             AP50 = AP_list[0]
             AP_general.extend([mAP, AP50, AP_list])
@@ -247,18 +252,18 @@ def mAP_group(image, image_meta, gt_class_id, gt_bbox, gt_mask, r):
 ###########################################################################
 # Calculate TP_FP_NF_per_score_mask. General and per class.
 ###########################################################################
-def TP_FP_FN_group(gt_mask, gt_class_id, r, IoU_treshold=0.5):
+def TP_FP_FN_group(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, IoU_treshold=0.5):
     TP_FP_FN_general = []
     TP_FP_FN_names = ["score_range", "TP", "FP", "FN","TP_ring", "FP_ring", "FN_ring","TP_crack", "FP_crack", "FN_crack","TP_resin", "FP_resin", "FN_resin", "TP_pith", "FP_pith", "FN_pith"]
     # if no mask is detected
-    if r['masks'].shape[-1] == 0:
+    if pred_mask.shape[-1] == 0:
          TP_FP_FN_general = [[0]*10]*15
     else:
         # for all classes
-        TP, FP, FN, score_range = TP_FP_FN_per_score_mask(gt_mask, r['masks'], r['scores'], IoU_treshold=IoU_treshold)
+        TP, FP, FN, score_range = TP_FP_FN_per_score_mask(gt_mask, pred_mask, pred_scores, IoU_treshold=IoU_treshold)
         TP_FP_FN_general = [score_range, TP, FP, FN]
         for i in range(1,5):
-            TP, FP, FN, score_range = TP_FP_FN_per_score_mask(gt_mask[:,:,gt_class_id==i], r['masks'][:,:,r['class_ids']==i], r['scores'][r['class_ids']==i], IoU_treshold=IoU_treshold)
+            TP, FP, FN, score_range = TP_FP_FN_per_score_mask(gt_mask[:,:,gt_class_id==i], pred_mask[:,:,pred_class_id==i], pred_scores[pred_class_id==i], IoU_treshold=IoU_treshold)
             TP_FP_FN_general.extend([TP, FP, FN])
 
     return TP_FP_FN_general, TP_FP_FN_names
@@ -266,17 +271,22 @@ def TP_FP_FN_group(gt_mask, gt_class_id, r, IoU_treshold=0.5):
 ###########################################################################
 # Calculate IoU general and per class.
 ###########################################################################
-def IoU_group(gt_mask, gt_class_id, r):
+def IoU_group(gt_mask, gt_class_id, pred_mask, pred_class_id):
     IoU_general = []
     IoU_names = ["IoU", "IoU_ring", "IoU_crack", "IoU_resin", "IoU_pith"]
     # if no mask is detected
-    if r['masks'].shape[-1] == 0:
+    if pred_mask.shape[-1] == 0:
         IoU_general = [0]*5
     else:
+        IoU= utils.compute_overlaps_masks(gt_mask, pred_mask)
+        IoU = np.nan_to_num(np.mean(IoU)) #change nans to 0
+        IoU_general = [IoU]
+        for i in range(1,5):
+            IoU= utils.compute_overlaps_masks(gt_mask[:,:,gt_class_id==i], pred_mask[:,:,pred_class_id==i])
+            IoU = np.nan_to_num(np.mean(IoU)) #change nans to 0
+            IoU_general.append(IoU)
 
-        IoU_m = utils.compute_overlaps_masks(gt_mask, r['masks'])
-        IoU_m = np.nan_to_num(np.mean(IoU_m)) #change nans to 0
-    return IoU_general
+    return IoU_general, IoU_names
 ###########################################################################
 # now calculate values for whole dataset
 ###########################################################################
@@ -315,6 +325,102 @@ TP_pith = []
 FP_pith = []
 FN_pith = []
 
+## IoU_group
+IoU = []
+IoU_ring = []
+IoU_crack = []
+IoU_resin = []
+IoU_pith = []
+
+#90 DEGREE ROTATION
+
+## AP group _90
+mAP_90 = []
+AP50_90 = []
+APlist_90 = []
+mAP_ring_90 = []
+AP50_ring_90 = []
+APlist_ring_90 = []
+mAP_crack_90 = []
+AP50_crack_90 = []
+APlist_crack_90 = []
+mAP_resin_90 = []
+AP50_resin_90 = []
+APlist_resin_90 =[]
+mAP_pith_90 = []
+AP50_pith_90 = []
+APlist_pith_90 = []
+
+## TP_FP_FN_group
+TP_90 = []
+FP_90 = []
+FN_90 = []
+TP_ring_90 = []
+FP_ring_90 = []
+FN_ring_90 = []
+TP_crack_90 = []
+FP_crack_90 = []
+FN_crack_90 = []
+TP_resin_90 = []
+FP_resin_90 = []
+FN_resin_90 = []
+TP_pith_90 = []
+FP_pith_90 = []
+FN_pith_90 = []
+
+## IoU_group
+IoU_90 = []
+IoU_ring_90 = []
+IoU_crack_90 = []
+IoU_resin_90 = []
+IoU_pith_90 = []
+
+#45 DEGREE ROTATION
+mAP_45 = []
+AP50_45 = []
+APlist_45 = []
+mAP_ring_45 = []
+AP50_ring_45 = []
+APlist_ring_45 = []
+mAP_crack_45 = []
+AP50_crack_45 = []
+APlist_crack_45 = []
+mAP_resin_45 = []
+AP50_resin_45 = []
+APlist_resin_45 =[]
+mAP_pith_45 = []
+AP50_pith_45 = []
+APlist_pith_45 = []
+
+## TP_FP_FN_group
+TP_45 = []
+FP_45 = []
+FN_45 = []
+TP_ring_45 = []
+FP_ring_45 = []
+FN_ring_45= []
+TP_crack_45 = []
+FP_crack_45 = []
+FN_crack_45 = []
+TP_resin_45 = []
+FP_resin_45 = []
+FN_resin_45 = []
+TP_pith_45 = []
+FP_pith_45 = []
+FN_pith_45 = []
+
+## IoU_group
+IoU_45 = []
+IoU_ring_45 = []
+IoU_crack_45 = []
+IoU_resin_45 = []
+IoU_pith_45 = []
+
+#COMBINED MASK
+IoU_combined_mask = []
+TPs_combined = []
+FPs_combined = []
+FNs_combined = []
 # Main structure
 for image_id in image_ids:
 
@@ -329,9 +435,12 @@ for image_id in image_ids:
 ###### Detect image in normal orientation
     results = model.detect([image], verbose=0)
     r = results[0]
+    mask_normal = r['masks'] # for the combined mask at the end
+    mask_normal_classes = r['class_ids']
     #print("check shapes", gt_class_id, gt_mask[:,:,gt_class_id==1].shape)
     # pass this r to the functions
-    AP_general, AP_names = mAP_group(image, image_meta, gt_class_id, gt_bbox, gt_mask, r)
+    #(image, image_meta, gt_class_id, gt_bbox, gt_mask, pred_bbox, pred_mask, pred_class_id, pred_scores)
+    AP_general, AP_names = mAP_group(image, gt_class_id, gt_bbox, gt_mask, r['rois'], r['masks'], r['class_ids'], r['scores'])
 
     mAP.append(AP_general[AP_names.index("mAP")])
     AP50.append(AP_general[AP_names.index("AP50")])
@@ -348,8 +457,13 @@ for image_id in image_ids:
     mAP_pith.append(AP_general[AP_names.index("mAP_pith")])
     AP50_pith.append(AP_general[AP_names.index("AP50_pith")])
     APlist_pith.append(AP_general[AP_names.index("APlist_pith")])
+    print("mAP", mAP)
+    print("AP50", AP50)
+    print("mAP_ring", mAP_ring)
+    print("AP50_ring", AP50_ring)
 
-    TP_general, TP_names = TP_FP_FN_group(gt_mask, gt_class_id, r, IoU_treshold=0.5)
+    #(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, IoU_treshold=0.5)
+    TP_general, TP_names = TP_FP_FN_group(gt_mask, gt_class_id, r['masks'], r['class_ids'], r['scores'], IoU_treshold=0.5)
 
     TP.append(TP_general[TP_names.index("TP")])
     FP.append(TP_general[TP_names.index("FP")])
@@ -369,56 +483,20 @@ for image_id in image_ids:
     print("TP_ring", TP_ring)
     print("FP_crack", FP_crack)
     print("FP_ring", FP_ring)
-    """
-    if r['masks'].shape[-1] == 0:
-        mAP.append(0)
-        mask_IoU.append(0)
-        bbox_IoU.append(0)
-        TPs_mask.append(np.zeros(10))
-        FPs_mask.append(np.zeros(10))
-        FNs_mask.append(np.repeat(gt_mask.shape[-1], 10)) # this has to be the number of ground truth
-        TPs_bbox.append(np.zeros(10))
-        FPs_bbox.append(np.zeros(10))
-        FNs_bbox.append(np.repeat(gt_mask.shape[-1], 10)) # this has to be the number of ground truth
-        APlist.append(np.zeros(10))
-        mask_normal = np.zeros(shape=(imgheight, imgheight))
-        mask_normal = np.reshape(mask_normal, (1024,1024,1))
-    else:
-        ###calculate all the stuff
-        mask_normal = r['masks'] # for the combined mask at the end
-        ap = utils.compute_ap_range(
-            gt_bbox, gt_class_id, gt_mask,
-            r['rois'], r['class_ids'], r['scores'], r['masks'],
-            verbose=0)
-        #print(r['scores'])
-        #print(r['masks'].shape)
-        mAP.append(ap)
 
-        #compute mask IoU
-        IoU_m = utils.compute_overlaps_masks(gt_mask, r['masks'])
-        IoU_m = np.nan_to_num(np.mean(IoU_m)) #change nans to 0
-        mask_IoU.append(IoU_m)
+    IoU_general, IoU_names = IoU_group(gt_mask, gt_class_id, r['masks'], r['class_ids'])
 
-        #compute TP, FP, FN for mask
-        TP, FP, FN, score_range = TP_FP_NF_per_score_mask(gt_mask, r['masks'], r['scores'], IoU_treshold=0.3)
-        #print(TP)
-        #print(FP)
-        #print(FN)
-        TPs_mask.append(TP)
-        FPs_mask.append(FP)
-        FNs_mask.append(FN)
-
-        #APlist for graph
-        ap = compute_ap_range_list(
-            gt_bbox, gt_class_id, gt_mask,
-            r['rois'], r['class_ids'], r['scores'], r['masks'],
-            verbose=0)
-        #print(ap)
-        APlist.append(ap)
-    """
+    IoU.append(IoU_general[IoU_names.index("IoU")])
+    IoU_ring.append(IoU_general[IoU_names.index("IoU_ring")])
+    IoU_crack.append(IoU_general[IoU_names.index("IoU_crack")])
+    IoU_resin.append(IoU_general[IoU_names.index("IoU_resin")])
+    IoU_pith.append(IoU_general[IoU_names.index("IoU_pith")])
+    print("IoU", IoU)
+    print("IoU_crack", IoU_crack)
+    print("IoU_resin", IoU_resin)
 
 ###### DETECT IMAGE 90degree
-    """
+
     ### rotate image, detect, rotate mask back
     image_90 = skimage.transform.rotate(image, 90, preserve_range=True).astype(np.uint8)
     #print('image90 shape:', image_90.shape)
@@ -426,173 +504,178 @@ for image_id in image_ids:
     #plt.show()
     results = model.detect([image_90], verbose=0)
     r = results[0]
-    """
-    """
-    if r['masks'].shape[-1] == 0:
-        mAP90.append(0)
-        mask_IoU90.append(0)
-        bbox_IoU90.append(0)
-        TPs90_mask.append(np.zeros(10))
-        FPs90_mask.append(np.zeros(10))
-        FNs90_mask.append(np.repeat(gt_mask.shape[-1], 10)) # this has to be the number of ground truth
-        TPs90_bbox.append(np.zeros(10))
-        FPs90_bbox.append(np.zeros(10))
-        FNs90_bbox.append(np.repeat(gt_mask.shape[-1], 10)) # this has to be the number of ground truth
-        APlist90.append(np.zeros(10))
-        mask_90 = np.zeros(shape=(imgheight, imgheight))
-        mask_90 = np.reshape(mask_90, (1024,1024,1))
-    else:
-        # rotate mask back
-        mask_back = np.rot90(r['masks'], k=-1)
-        mask_90 = mask_back # to combine at the end
-        #plt.imshow(r['masks'][:,:,0])
-        #plt.show()
-        #plt.imshow(mask_back[:,:,0])
-        #plt.show()
 
-        # get the associated bbox
-        #print(r['rois'].shape)
-        #print(r['rois'][0])
-        #plt.plot([r['rois'][0][1],r['rois'][0][3]])
-        #plt.show()
-        extracted_bboxes = utils.extract_bboxes(mask_back)
+    # rotate mask back
+    mask_90_back = np.rot90(r['masks'], k=-1)
+    mask_90_classes = r['class_ids']
+    # get the associated bbox
+    extracted_bboxes = utils.extract_bboxes(mask_90_back)
 
-        ###calculate all the stuff
-        ap = utils.compute_ap_range(
-            gt_bbox, gt_class_id, gt_mask,
-            extracted_bboxes, r['class_ids'], r['scores'], mask_back,
-            verbose=0)
-        #print(r['scores'])
-        #print(r['masks'].shape)
-        mAP90.append(ap)
+    ###calculate all the stuff
+    AP_general, AP_names = mAP_group(image, gt_class_id, gt_bbox, gt_mask, extracted_bboxes, mask_90_back, r['class_ids'], r['scores'])
 
-        #compute mask IoU
-        IoU_m = utils.compute_overlaps_masks(gt_mask, mask_back)
-        IoU_m = np.nan_to_num(np.mean(IoU_m)) #change nans to 0
-        mask_IoU90.append(IoU_m)
+    mAP_90.append(AP_general[AP_names.index("mAP")])
+    AP50_90.append(AP_general[AP_names.index("AP50")])
+    APlist_90.append(AP_general[AP_names.index("APlist")])
+    mAP_ring_90.append(AP_general[AP_names.index("mAP_ring")])
+    AP50_ring_90.append(AP_general[AP_names.index("AP50_ring")])
+    APlist_ring_90.append(AP_general[AP_names.index("APlist_ring")])
+    mAP_crack_90.append(AP_general[AP_names.index("mAP_crack")])
+    AP50_crack_90.append(AP_general[AP_names.index("AP50_crack")])
+    APlist_crack_90.append(AP_general[AP_names.index("APlist_crack")])
+    mAP_resin_90.append(AP_general[AP_names.index("mAP_resin")])
+    AP50_resin_90.append(AP_general[AP_names.index("AP50_resin")])
+    APlist_resin_90.append(AP_general[AP_names.index("APlist_resin")])
+    mAP_pith_90.append(AP_general[AP_names.index("mAP_pith")])
+    AP50_pith_90.append(AP_general[AP_names.index("AP50_pith")])
+    APlist_pith_90.append(AP_general[AP_names.index("APlist_pith")])
+    print("mAP_90", mAP_90)
+    print("AP50_90", AP50_90)
+    print("mAP_ring_90", mAP_ring_90)
+    print("AP50_ring_90", AP50_ring_90)
 
-        #compute TP, FP, FN for mask
-        TP, FP, FN, score_range = TP_FP_NF_per_score_mask(gt_mask, mask_back, r['scores'], IoU_treshold=0.3)
-        #print(TP)
-        #print(FP)
-        #print(FN)
-        TPs90_mask.append(TP)
-        FPs90_mask.append(FP)
-        FNs90_mask.append(FN)
+    #(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, IoU_treshold=0.5)
+    TP_general, TP_names = TP_FP_FN_group(gt_mask, gt_class_id, mask_90_back, r['class_ids'], r['scores'], IoU_treshold=0.5)
+
+    TP_90.append(TP_general[TP_names.index("TP")])
+    FP_90.append(TP_general[TP_names.index("FP")])
+    FN_90.append(TP_general[TP_names.index("FN")])
+    TP_ring_90.append(TP_general[TP_names.index("TP_ring")])
+    FP_ring_90.append(TP_general[TP_names.index("FP_ring")])
+    FN_ring_90.append(TP_general[TP_names.index("FN_ring")])
+    TP_crack_90.append(TP_general[TP_names.index("TP_crack")])
+    FP_crack_90.append(TP_general[TP_names.index("FP_crack")])
+    FN_crack_90.append(TP_general[TP_names.index("FN_crack")])
+    TP_resin_90.append(TP_general[TP_names.index("TP_resin")])
+    FP_resin_90.append(TP_general[TP_names.index("FP_resin")])
+    FN_resin_90.append(TP_general[TP_names.index("FN_resin")])
+    TP_pith_90.append(TP_general[TP_names.index("TP_pith")])
+    FP_pith_90.append(TP_general[TP_names.index("FP_pith")])
+    FN_pith_90.append(TP_general[TP_names.index("FN_pith")])
+    print("TP_ring_90", TP_ring_90)
+    print("FP_crack_90", FP_crack_90)
+    print("FP_ring_90", FP_ring_90)
+
+    IoU_general, IoU_names = IoU_group(gt_mask, gt_class_id, mask_90_back, r['class_ids'])
+
+    IoU_90.append(IoU_general[IoU_names.index("IoU")])
+    IoU_ring_90.append(IoU_general[IoU_names.index("IoU_ring")])
+    IoU_crack_90.append(IoU_general[IoU_names.index("IoU_crack")])
+    IoU_resin_90.append(IoU_general[IoU_names.index("IoU_resin")])
+    IoU_pith_90.append(IoU_general[IoU_names.index("IoU_pith")])
+    print("IoU_90", IoU_90)
+    print("IoU_crack_90", IoU_crack_90)
+    print("IoU_resin_90", IoU_resin_90)
 
 
-        #APlist for graph
-        ap = compute_ap_range_list(
-            gt_bbox, gt_class_id, gt_mask,
-            extracted_bboxes, r['class_ids'], r['scores'], mask_back,
-            verbose=0)
-        #print(ap)
-        APlist90.append(ap)
-    """
 ###### DETECT IMAGE 45degree
-    """
+
     ### rotate image, detect
-    #print('img_shape:', image.shape)
-    #plt.imshow(image)
-    #plt.show()
     image_45 = skimage.transform.rotate(image, angle = 45, resize=True, preserve_range=True).astype(np.uint8)
-    #print('img_45_shape:', image_45.shape)
-    #plt.imshow(image_45)
-    #plt.show()
     results = model.detect([image_45], verbose=0)
     r = results[0]
-    """
-    """
-    # if mask is empty make all results zeroes
-    if r['masks'].shape[-1] == 0:
-        mAP45.append(0)
-        mask_IoU45.append(0)
-        bbox_IoU45.append(0)
-        TPs45_mask.append(np.zeros(10))
-        FPs45_mask.append(np.zeros(10))
-        #print('FPs45_mask', FPs45_mask)
-        #print('gt_mask:', gt_mask.shape[-1])
-        FNs45_mask.append(np.repeat(gt_mask.shape[-1], 10)) # this has to be the number of ground truth
-        #print('FNs45_mask', FNs45_mask)
-        TPs45_bbox.append(np.zeros(10))
-        FPs45_bbox.append(np.zeros(10))
-        FNs45_bbox.append(np.repeat(gt_mask.shape[-1], 10)) # this has to be the number of ground truth
-        APlist45.append(np.zeros(10))
-        mask_45 = np.zeros(shape=(imgheight, imgheight))
-        mask_45 = np.reshape(mask_45, (1024,1024,1))
-    else:
 
-        # rotate mask back
-        #print('Rois_45:', r['rois'].shape)
-        #print('Detected_mask_45:', r['masks'].shape)
-        #plt.imshow(r['masks'][:,:,0])
-        #plt.show()
+    # rotate the mask back
+    maskr2_back = skimage.transform.rotate(r['masks'], angle = -45, resize=False)
+    #crop to the right size
+    imgheight, imgwidth = image.shape[:2]
+    imgheight2, imgwidth2 = maskr2_back.shape[:2]
+    #print('img_shape:', image.shape)
+    #print('img_45_shape:', maskr2_back.shape)
+    to_crop = int((imgheight2 - imgheight)/2)
+    mask_45_back = maskr2_back[to_crop: (to_crop+int(imgheight)), to_crop: (to_crop+int(imgheight))]
+    mask_45_classes = r['class_ids']
+    # extract bounding boxes based from the masks
+    extracted_bboxes = utils.extract_bboxes(mask_45_back)
 
-        maskr2_back = skimage.transform.rotate(r['masks'], angle = -45, resize=False)
-        #crop to the right size
-        imgheight, imgwidth = image.shape[:2]
-        imgheight2, imgwidth2 = maskr2_back.shape[:2]
-        #print('img_shape:', image.shape)
-        #print('img_45_shape:', maskr2_back.shape)
-        to_crop = int((imgheight2 - imgheight)/2)
+    ###calculate all the stuff
+    AP_general, AP_names = mAP_group(image, gt_class_id, gt_bbox, gt_mask, extracted_bboxes, mask_45_back, r['class_ids'], r['scores'])
 
-        mask_back = maskr2_back[to_crop: (to_crop+int(imgheight)), to_crop: (to_crop+int(imgheight))]
-        mask_45 = mask_back #to combine at the end
-        #plt.imshow(mask_back[:,:,0])
-        #plt.show()
+    mAP_45.append(AP_general[AP_names.index("mAP")])
+    AP50_45.append(AP_general[AP_names.index("AP50")])
+    APlist_45.append(AP_general[AP_names.index("APlist")])
+    mAP_ring_45.append(AP_general[AP_names.index("mAP_ring")])
+    AP50_ring_45.append(AP_general[AP_names.index("AP50_ring")])
+    APlist_ring_45.append(AP_general[AP_names.index("APlist_ring")])
+    mAP_crack_45.append(AP_general[AP_names.index("mAP_crack")])
+    AP50_crack_45.append(AP_general[AP_names.index("AP50_crack")])
+    APlist_crack_45.append(AP_general[AP_names.index("APlist_crack")])
+    mAP_resin_45.append(AP_general[AP_names.index("mAP_resin")])
+    AP50_resin_45.append(AP_general[AP_names.index("AP50_resin")])
+    APlist_resin_45.append(AP_general[AP_names.index("APlist_resin")])
+    mAP_pith_45.append(AP_general[AP_names.index("mAP_pith")])
+    AP50_pith_45.append(AP_general[AP_names.index("AP50_pith")])
+    APlist_pith_45.append(AP_general[AP_names.index("APlist_pith")])
+    print("mAP_45", mAP_45)
+    print("AP50_45", AP50_45)
+    print("mAP_ring_45", mAP_ring_45)
+    print("AP50_ring_45", AP50_ring_45)
 
-        # extract bounding boxes based on the masks
-        extracted_bboxes = utils.extract_bboxes(mask_back)
-        ###calculate all the stuff
-        ap = utils.compute_ap_range(
-            gt_bbox, gt_class_id, gt_mask,
-            extracted_bboxes, r['class_ids'], r['scores'], mask_back,
-            verbose=0)
-        #print(r['scores'])
-        #print(r['masks'].shape)
-        mAP45.append(ap)
+    #(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, IoU_treshold=0.5)
+    TP_general, TP_names = TP_FP_FN_group(gt_mask, gt_class_id, mask_45_back, r['class_ids'], r['scores'], IoU_treshold=0.5)
 
-        #compute mask IoU
-        IoU_m = utils.compute_overlaps_masks(gt_mask, mask_back)
-        IoU_m = np.nan_to_num(np.mean(IoU_m)) #change nans to 0
-        mask_IoU45.append(IoU_m)
+    TP_45.append(TP_general[TP_names.index("TP")])
+    FP_45.append(TP_general[TP_names.index("FP")])
+    FN_45.append(TP_general[TP_names.index("FN")])
+    TP_ring_45.append(TP_general[TP_names.index("TP_ring")])
+    FP_ring_45.append(TP_general[TP_names.index("FP_ring")])
+    FN_ring_45.append(TP_general[TP_names.index("FN_ring")])
+    TP_crack_45.append(TP_general[TP_names.index("TP_crack")])
+    FP_crack_45.append(TP_general[TP_names.index("FP_crack")])
+    FN_crack_45.append(TP_general[TP_names.index("FN_crack")])
+    TP_resin_45.append(TP_general[TP_names.index("TP_resin")])
+    FP_resin_45.append(TP_general[TP_names.index("FP_resin")])
+    FN_resin_45.append(TP_general[TP_names.index("FN_resin")])
+    TP_pith_45.append(TP_general[TP_names.index("TP_pith")])
+    FP_pith_45.append(TP_general[TP_names.index("FP_pith")])
+    FN_pith_45.append(TP_general[TP_names.index("FN_pith")])
+    print("TP_ring_45", TP_ring_45)
+    print("FP_crack_45", FP_crack_45)
+    print("FP_ring_45", FP_ring_45)
 
-        #compute TP, FP, FN for mask
-        TP, FP, FN, score_range = TP_FP_NF_per_score_mask(gt_mask, mask_back, r['scores'], IoU_treshold=0.3)
-        #print(TP)
-        #print(FP)
-        #print(FN)
-        TPs45_mask.append(TP)
-        FPs45_mask.append(FP)
-        FNs45_mask.append(FN)
+    IoU_general, IoU_names = IoU_group(gt_mask, gt_class_id, mask_45_back, r['class_ids'])
 
-        #APlist for graph
-        ap = compute_ap_range_list(
-            gt_bbox, gt_class_id, gt_mask,
-            extracted_bboxes, r['class_ids'], r['scores'], mask_back,
-            verbose=0)
-        #print(ap)
-        APlist45.append(ap)
-    """
-###### COMBINE ALL THE MASKS TO ONE AND CLACULATE IoU
+    IoU_45.append(IoU_general[IoU_names.index("IoU")])
+    IoU_ring_45.append(IoU_general[IoU_names.index("IoU_ring")])
+    IoU_crack_45.append(IoU_general[IoU_names.index("IoU_crack")])
+    IoU_resin_45.append(IoU_general[IoU_names.index("IoU_resin")])
+    IoU_pith_45.append(IoU_general[IoU_names.index("IoU_pith")])
+    print("IoU_45", IoU_45)
+    print("IoU_crack_45", IoU_crack_45)
+    print("IoU_resin_45", IoU_resin_45)
+
+
+
+###### COMBINE ALL THE MASKS of class RING TO ONE AND CLACULATE IoU for Ring
     #normal flatten
-    """
     mask_normal_flat = np.zeros(shape=(imgheight, imgheight))
+    mask_normal = mask_normal[:,:, mask_normal_classes==1] # to get only masks for rings
     nmasks = mask_normal.shape[2]
-    for m in range(0,nmasks):
-        mask_normal_flat = mask_normal_flat + mask_normal[:,:,m]
+    if nmasks == 0:
+        mask_normal_flat = np.zeros(shape=(imgheight, imgheight, 1))
+    else:
+        for m in range(0,nmasks):
+            mask_normal_flat = mask_normal_flat + mask_normal[:,:,m]
     #plt.imshow(mask_normal_flat)
     #plt.show()
     #90d flatten
     mask_90_flat = np.zeros(shape=(imgheight, imgheight))
-    nmasks = mask_90.shape[2]
-    for m in range(0,nmasks):
-        mask_90_flat = mask_90_flat + mask_90[:,:,m]
+    mask_90_back = mask_90_back[:,:,mask_90_classes==1] # to get only masks for rings
+    nmasks = mask_90_back.shape[2]
+    if nmasks == 0:
+        mask_90_flat = np.zeros(shape=(imgheight, imgheight, 1))
+    else:
+        for m in range(0,nmasks):
+            mask_90_flat = mask_90_flat + mask_90_back[:,:,m]
     #45d flatten
     mask_45_flat = np.zeros(shape=(imgheight, imgheight))
-    nmasks = mask_45.shape[2]
-    for m in range(0,nmasks):
-        mask_45_flat = mask_45_flat + mask_45[:,:,m]
+    mask_45_back = mask_45_back[:,:,mask_45_classes==1] # to get only masks for rings
+    nmasks = mask_45_back.shape[2]
+    if nmasks == 0:
+        mask_45_flat = np.zeros(shape=(imgheight, imgheight, 1))
+    else:
+        for m in range(0,nmasks):
+            mask_45_flat = mask_45_flat + mask_45_back[:,:,m]
 
     #combine to one
     combined_mask = mask_normal_flat + mask_90_flat + mask_45_flat
@@ -601,6 +684,7 @@ for image_id in image_ids:
 
     #flatten ground truth mask
     gt_mask_flat = np.zeros(shape=(imgheight, imgheight))
+    gt_mask = gt_mask[:,:,gt_class_id==1]
     nmasks = gt_mask.shape[2]
     for m in range(0,nmasks):
         gt_mask_flat = gt_mask_flat + gt_mask[:,:,m]
@@ -613,6 +697,8 @@ for image_id in image_ids:
     gt_mask_flat_binary = np.reshape(gt_mask_flat_binary, (1024,1024,1))
     #print('gt_mask_shape:', gt_mask_flat_binary.shape)
     IoU_combined_mask.append(utils.compute_overlaps_masks(gt_mask_flat_binary, combined_mask_binary))
+
+    #IoU_combined_mask = np.mean(IoU_combined_mask)
     #print('IoU_combined:', IoU_combined_mask)
 
 ####### Try to separate combined masks into layers
@@ -625,9 +711,9 @@ for image_id in image_ids:
     #plt.imshow(separated_mask[:,:,0])
     #plt.show()
     mask_matrix = utils.compute_overlaps_masks(gt_mask, separated_mask)
-    print(mask_matrix)
+    #print(mask_matrix)
     # making binary numpy array with IoU treshold
-    IoU_treshold = 0.3 # i set it less because combined mask is bigger and it does not matter i think
+    IoU_treshold = 0.5 # i set it less because combined mask is bigger and it does not matter i think
     mask_matrix_binary = np.where(mask_matrix > IoU_treshold, 1, 0)
     #print (mask_matrix_binary)
 
@@ -639,42 +725,211 @@ for image_id in image_ids:
     #TP
     sum_truth = np.sum(mask_matrix_binary, axis=1)
     sum_truth_binary = np.where(sum_truth > 0, 1, 0)
-    TP = np.sum(sum_truth_binary)
-    TPs_combined.append(TP)
+    TP_comb = np.sum(sum_truth_binary)
+    TPs_combined.append(TP_comb)
     #print('TP:', TP)
     #FP
     sum_pred = np.sum(mask_matrix_binary, axis=0)
     sum_pred_binary = np.where(sum_pred > 0, 1, 0)
-    FP = pred_r - np.sum(sum_pred_binary)
+    FP_comb = pred_r - np.sum(sum_pred_binary)
     FPs_combined.append(FP)
     #print('FP:', FP)
     #FN
-    FN = gt_r - TP
-    FNs_combined.append(FN)
-    """
-# THIS SHOULD BE SIMPLIFIED AND WRITEN AND DONE WITH MATRICES FROM PREVIOUS STEPS
-"""
+    FN_comb = gt_r - TP_comb
+    FNs_combined.append(FN_comb)
+print("IoU_combined_mask",IoU_combined_mask)
+
 #calculate averages for all images
 #0
+## AP group
 mAP = np.mean(mAP)
-mask_IoU = np.mean(mask_IoU)
+print("mAP", mAP)
+AP50 = np.mean(AP50)
+APlist = np.mean(APlist, axis=0)
+mAP_ring = np.mean(mAP_ring)
+AP50_ring = np.mean(AP50_ring)
+APlist_ring = np.mean(APlist_ring, axis=0)
+mAP_crack = np.mean(mAP_crack)
+AP50_crack = np.mean(AP50_crack)
+APlist_crack = np.mean(APlist_crack, axis=0)
+mAP_resin = np.mean(mAP_resin)
+AP50_resin = np.mean(AP50_resin)
+APlist_resin = np.mean(APlist_resin, axis=0)
+mAP_pith = np.mean(mAP_pith)
+AP50_pith = np.mean(AP50_pith)
+APlist_pith = np.mean(APlist_pith, axis=0)
 
-# Prec, recall for mask
-print('TPs_mask',TPs_mask)
-TPs_mask = np.sum(TPs_mask, axis=0)
-FPs_mask = np.sum(FPs_mask, axis=0)
-FNs_mask = np.sum(FNs_mask, axis=0)
+## TP_FP_FN_group
+TP = np.array(np.sum(TP, axis=0))
+FP = np.array(np.sum(FP, axis=0))
+FN = np.array(np.sum(FN, axis=0))
+### calculate sensitivity and precission
+SEN = TP/(TP+FN)
+PREC = TP/(TP+FP)
+print("SEN", SEN)
+print("PREC", PREC)
 
-TPs_mask = np.array(TPs_mask)
-FPs_mask = np.array(FPs_mask)
-FNs_mask = np.array(FNs_mask)
-SEN_mask = TPs_mask/(TPs_mask+FNs_mask)
-PREC_mask = TPs_mask/(TPs_mask+FPs_mask)
-#print('SEN_mask:', SEN_mask)
+TP_ring = np.array(np.sum(TP_ring, axis=0))
+FP_ring = np.array(np.sum(FP_ring, axis=0))
+FN_ring = np.array(np.sum(FN_ring, axis=0))
+### calculate sensitivity and precission
+SEN_ring = TP_ring/(TP_ring+FN_ring)
+PREC_ring = TP_ring/(TP_ring+FP_ring)
 
-#print('TP:', TPs)
-#print('FP:', FPs)
-#print('FN:', FNs)
+TP_crack = np.array(np.sum(TP_crack, axis=0))
+FP_crack = np.array(np.sum(FP_crack, axis=0))
+FN_crack = np.array(np.sum(FN_crack, axis=0))
+### calculate sensitivity and precission
+SEN_crack = TP_crack/(TP_crack+FN_crack)
+PREC_crack = TP_crack/(TP_crack+FP_crack)
+
+TP_resin = np.array(np.sum(TP_resin, axis=0))
+FP_resin = np.array(np.sum(FP_resin, axis=0))
+FN_resin = np.array(np.sum(FN_resin, axis=0))
+### calculate sensitivity and precission
+SEN_resin = TP_resin/(TP_resin+FN_resin)
+PREC_resin = TP_resin/(TP_resin+FP_resin)
+print("SEN_resin", SEN_resin)
+TP_pith = np.array(np.sum(TP_pith, axis=0))
+FP_pith = np.array(np.sum(FP_pith, axis=0))
+FN_pith = np.array(np.sum(FN_pith, axis=0))
+### calculate sensitivity and precission
+SEN_pith = TP_pith/(TP_pith+FN_pith)
+PREC_pith = TP_pith/(TP_pith+FP_pith)
+
+## IoU_group
+IoU = np.mean(IoU)
+IoU_ring = np.mean(IoU_ring)
+IoU_crack = np.mean(IoU_crack)
+IoU_resin = np.mean(IoU_resin)
+IoU_pith = np.mean(IoU_pith)
+
+# 90
+## AP group
+mAP_90 = np.mean(mAP_90)
+print("mAP_90", mAP_90)
+AP50_90 = np.mean(AP50_90)
+APlist_90 = np.mean(APlist_90, axis=0)
+mAP_ring_90 = np.mean(mAP_ring_90)
+AP50_ring_90 = np.mean(AP50_ring_90)
+APlist_ring_90 = np.mean(APlist_ring_90, axis=0)
+mAP_crack_90 = np.mean(mAP_crack_90)
+AP50_crack_90 = np.mean(AP50_crack_90)
+APlist_crack_90 = np.mean(APlist_crack_90, axis=0)
+mAP_resin_90 = np.mean(mAP_resin_90)
+AP50_resin_90 = np.mean(AP50_resin_90)
+APlist_resin_90 = np.mean(APlist_resin_90, axis=0)
+mAP_pith_90 = np.mean(mAP_pith_90)
+AP50_pith_90 = np.mean(AP50_pith_90)
+APlist_pith_90 = np.mean(APlist_pith_90, axis=0)
+
+## TP_FP_FN_group
+TP_90 = np.array(np.sum(TP_90, axis=0))
+FP_90 = np.array(np.sum(FP_90, axis=0))
+FN_90 = np.array(np.sum(FN_90, axis=0))
+### calculate sensitivity and precission
+SEN_90 = TP_90/(TP_90+FN_90)
+PREC_90 = TP_90/(TP_90+FP_90)
+print("SEN_90", SEN_90)
+print("PREC_90", PREC_90)
+
+TP_ring_90 = np.array(np.sum(TP_ring_90, axis=0))
+FP_ring_90 = np.array(np.sum(FP_ring_90, axis=0))
+FN_ring_90 = np.array(np.sum(FN_ring_90, axis=0))
+### calculate sensitivity and precission
+SEN_ring_90 = TP_ring_90/(TP_ring_90+FN_ring_90)
+PREC_ring_90 = TP_ring_90/(TP_ring_90+FP_ring_90)
+
+TP_crack_90 = np.array(np.sum(TP_crack_90, axis=0))
+FP_crack_90 = np.array(np.sum(FP_crack_90, axis=0))
+FN_crack_90 = np.array(np.sum(FN_crack_90, axis=0))
+### calculate sensitivity and precission
+SEN_crack_90 = TP_crack_90/(TP_crack_90+FN_crack_90)
+PREC_crack_90 = TP_crack_90/(TP_crack_90+FP_crack_90)
+
+TP_resin_90 = np.array(np.sum(TP_resin_90, axis=0))
+FP_resin_90 = np.array(np.sum(FP_resin_90, axis=0))
+FN_resin_90 = np.array(np.sum(FN_resin_90, axis=0))
+### calculate sensitivity and precission
+SEN_resin_90 = TP_resin_90/(TP_resin_90+FN_resin_90)
+PREC_resin_90 = TP_resin_90/(TP_resin_90+FP_resin_90)
+
+TP_pith_90 = np.array(np.sum(TP_pith_90, axis=0))
+FP_pith_90 = np.array(np.sum(FP_pith_90, axis=0))
+FN_pith_90 = np.array(np.sum(FN_pith_90, axis=0))
+### calculate sensitivity and precission
+SEN_pith_90 = TP_pith_90/(TP_pith_90+FN_pith_90)
+PREC_pith_90 = TP_pith_90/(TP_pith_90+FP_pith_90)
+
+## IoU_group
+IoU_90 = np.mean(IoU_90)
+IoU_ring_90 = np.mean(IoU_ring_90)
+IoU_crack_90 = np.mean(IoU_crack_90)
+IoU_resin_90 = np.mean(IoU_resin_90)
+IoU_pith_90 = np.mean(IoU_pith_90)
+
+# 45
+mAP_45 = np.mean(mAP_45)
+print("mAP_45", mAP_45)
+AP50_45 = np.mean(AP50_45)
+APlist_45 = np.mean(APlist_45, axis=0)
+mAP_ring_45 = np.mean(mAP_ring_45)
+AP50_ring_45 = np.mean(AP50_ring_45)
+APlist_ring_45 = np.mean(APlist_ring_45, axis=0)
+mAP_crack_45 = np.mean(mAP_crack_45)
+AP50_crack_45 = np.mean(AP50_crack_45)
+APlist_crack_45 = np.mean(APlist_crack_45, axis=0)
+mAP_resin_45 = np.mean(mAP_resin_45)
+AP50_resin_45 = np.mean(AP50_resin_45)
+APlist_resin_45 = np.mean(APlist_resin_45, axis=0)
+mAP_pith_45 = np.mean(mAP_pith_45)
+AP50_pith_45 = np.mean(AP50_pith_45)
+APlist_pith_45 = np.mean(APlist_pith_45, axis=0)
+
+## TP_FP_FN_group
+TP_45 = np.array(np.sum(TP_45, axis=0))
+FP_45 = np.array(np.sum(FP_45, axis=0))
+FN_45 = np.array(np.sum(FN_45, axis=0))
+### calculate sensitivity and precission
+SEN_45 = TP_45/(TP_45+FN_45)
+PREC_45 = TP_45/(TP_45+FP_45)
+print("SEN_45", SEN_45)
+print("PREC_45", PREC_45)
+
+TP_ring_45 = np.array(np.sum(TP_ring_45, axis=0))
+FP_ring_45 = np.array(np.sum(FP_ring_45, axis=0))
+FN_ring_45 = np.array(np.sum(FN_ring_45, axis=0))
+### calculate sensitivity and precission
+SEN_ring_45 = TP_ring_45/(TP_ring_45+FN_ring_45)
+PREC_ring_45 = TP_ring_45/(TP_ring_45+FP_ring_45)
+
+TP_crack_45 = np.array(np.sum(TP_crack_45, axis=0))
+FP_crack_45 = np.array(np.sum(FP_crack_45, axis=0))
+FN_crack_45 = np.array(np.sum(FN_crack_45, axis=0))
+### calculate sensitivity and precission
+SEN_crack_45 = TP_crack_45/(TP_crack_45+FN_crack_45)
+PREC_crack_45 = TP_crack_45/(TP_crack_45+FP_crack_45)
+
+TP_resin_45 = np.array(np.sum(TP_resin_45, axis=0))
+FP_resin_45 = np.array(np.sum(FP_resin_45, axis=0))
+FN_resin_45 = np.array(np.sum(FN_resin_45, axis=0))
+### calculate sensitivity and precission
+SEN_resin_45 = TP_resin_45/(TP_resin_45+FN_resin_45)
+PREC_resin_45 = TP_resin_45/(TP_resin_45+FP_resin_45)
+print("SEN_resin_45", SEN_resin_45)
+TP_pith_45 = np.array(np.sum(TP_pith_45, axis=0))
+FP_pith_45 = np.array(np.sum(FP_pith_45, axis=0))
+FN_pith_45 = np.array(np.sum(FN_pith_45, axis=0))
+### calculate sensitivity and precission
+SEN_pith_45 = TP_pith_45/(TP_pith_45+FN_pith_45)
+PREC_pith_45 = TP_pith_45/(TP_pith_45+FP_pith_45)
+
+## IoU_group
+IoU_45 = np.mean(IoU_45)
+IoU_ring_45 = np.mean(IoU_ring_45)
+IoU_crack_45 = np.mean(IoU_crack_45)
+IoU_resin_45 = np.mean(IoU_resin_45)
+IoU_pith_45 = np.mean(IoU_pith_45)
 
 # Prec and recall for combined
 print('TPs_combined', TPs_combined)
@@ -682,86 +937,16 @@ TPs_combined = np.sum(TPs_combined)
 FPs_combined = np.sum(FPs_combined)
 FNs_combined = np.sum(FNs_combined)
 print('TPs_combined', TPs_combined)
-
 SEN_combined = TPs_combined/(TPs_combined+FNs_combined)
 PREC_combined = TPs_combined/(TPs_combined+FPs_combined)
-
-#APlist for graph
-APlist = np.mean(APlist, axis=0)
-iou_thresholds = np.arange(0.5, 1.0, 0.05)
-
-#90
-mAP90 = np.mean(mAP90)
-mask_IoU90 = np.mean(mask_IoU90)
-bbox_IoU90 = np.mean(bbox_IoU90)
-
-# Prec, recall for mask
-#print('TPs90_mask:', TPs90_mask)
-TPs90_mask = np.sum(TPs90_mask, axis=0)
-FPs90_mask = np.sum(FPs90_mask, axis=0)
-FNs90_mask = np.sum(FNs90_mask, axis=0)
-#print('TPs90_mask_after:', TPs90_mask)
-#print('TP:', TPs)
-#print('FP:', FPs)
-#print('FN:', FNs)
-
-TPs90_mask = np.array(TPs90_mask)
-FPs90_mask = np.array(FPs90_mask)
-FNs90_mask = np.array(FNs90_mask)
-SEN90_mask = TPs90_mask/(TPs90_mask+FNs90_mask)
-PREC90_mask = TPs90_mask/(TPs90_mask+FPs90_mask)
-#print('SEN90_mask:', SEN90_mask)
-# Prec, recall for bbox
-TPs90_bbox = np.sum(TPs90_bbox, axis=0)
-FPs90_bbox = np.sum(FPs90_bbox, axis=0)
-FNs90_bbox = np.sum(FNs90_bbox, axis=0)
-
-#print('TP:', TPs)
-#print('FP:', FPs)
-#print('FN:', FNs)
-
-TPs90_bbox = np.array(TPs90_bbox)
-FPs90_bbox = np.array(FPs90_bbox)
-FNs90_bbox = np.array(FNs90_bbox)
-SEN90_bbox = TPs90_bbox/(TPs90_bbox+FNs90_bbox)
-PREC90_bbox = TPs90_bbox/(TPs90_bbox+FPs90_bbox)
-
-#APlist for graph
-APlist90 = np.mean(APlist90, axis=0)
-
-#45
-#print('mAP45:', mAP45)
-mAP45 = np.mean(mAP45)
-mask_IoU45 = np.mean(mask_IoU45)
-bbox_IoU45 = np.mean(bbox_IoU45)
-#print('mAP45:', mAP45)
-# Prec, recall for mask
-#print('FNs45_mask:', FNs45_mask)
-TPs45_mask = np.sum(TPs45_mask, axis=0)
-FPs45_mask = np.sum(FPs45_mask, axis=0)
-FNs45_mask = np.sum(FNs45_mask, axis=0)
-#print('FNs45_mask:', FNs45_mask)
-#print('TP:', TPs)
-#print('FP:', FPs)
-#print('FN:', FNs)
-
-TPs45_mask = np.array(TPs45_mask)
-FPs45_mask = np.array(FPs45_mask)
-FNs45_mask = np.array(FNs45_mask)
-SEN45_mask = TPs45_mask/(TPs45_mask+FNs45_mask)
-PREC45_mask = TPs45_mask/(TPs45_mask+FPs45_mask)
-
-#APlist for graph
-APlist45 = np.mean(APlist45, axis=0)
-# combined mask
 IoU_combined_mask = np.mean(IoU_combined_mask)
-#print('IoU_combined:', IoU_combined_mask)
-"""
+
+iou_thresholds = np.arange(0.5, 1.0, 0.05) # for graph
+
 #######################################################################
 #Save output
 #######################################################################
 # SOLVE THIS AT THE END SO TESTS CAN RUN
-"""
 #get folder path and make folder
 run_path = args.weight
 #print(run_path)
@@ -786,20 +971,40 @@ if not os.path.exists(weight_eval_DIR): #check if it already exists and if not m
 #save table
 df = pd.DataFrame()
 
-df['variables'] = ['mAP', 'mask_IoU', 'bbox_IoU', 'SEN_mask', 'PREC_mask', 'TPs_mask', 'FPs_mask', 'FNs_mask'] #names of all the variables
-df['normal'] = [mAP, mask_IoU, bbox_IoU, SEN_mask[0], PREC_mask[0], TPs_mask[0], FPs_mask[0], FNs_mask[0]]  #values for all the variables
-df['90d'] = [mAP90, mask_IoU90, bbox_IoU90, SEN90_mask[0], PREC90_mask[0], TPs90_mask[0], FPs90_mask[0], FNs90_mask[0]]  #values for all the variables
-df['45d'] = [mAP45, mask_IoU45, bbox_IoU45, SEN45_mask[0], PREC45_mask[0], TPs45_mask[0], FPs45_mask[0], FNs45_mask[0]]  #values for all the variables
-# average all to a last colum
-df['average'] = df.mean(numeric_only=True, axis=1)
-df['combined'] = [np.nan, IoU_combined_mask, np.nan, SEN_combined, PREC_combined, TPs_combined, FPs_combined, FNs_combined, np.nan, np.nan, np.nan, np.nan, np.nan]
+df['variables'] = ["mAP", "AP50", "mAP_ring", "AP50_ring", "mAP_crack", "AP50_crack", "mAP_resin", "AP50_resin", "mAP_pith", "AP50_pith",  "TP", "FP",
+"FN", "SEN", "PREC", "TP_ring", "FP_ring", "FN_ring","SEN_ring", "PREC_ring", "TP_crack", "FP_crack", "FN_crack", "SEN_crack", "PREC_crack", "TP_resin",
+"FP_resin", "FN_resin", "SEN_resin", "PREC_resin", "TP_pith", "FP_pith", "FN_pith", "SEN_pith", "PREC_pith","IoU", "IoU_ring", "IoU_crack", "IoU_resin",
+"IoU_pith"] #names of all the variables
+
+df['normal'] = [mAP, AP50, mAP_ring, AP50_ring, mAP_crack, AP50_crack, mAP_resin, AP50_resin, mAP_pith, AP50_pith, TP[0], FP[0], FN[0], SEN[0], PREC[0],
+TP_ring[0], FP_ring[0], FN_ring[0], SEN_ring[0], PREC_ring[0], TP_crack[0], FP_crack[0], FN_crack[0], SEN_crack[0], PREC_crack[0], TP_resin[0], FP_resin[0],
+FN_resin[0], SEN_resin[0], PREC_resin[0], TP_pith[0], FP_pith[0], FN_pith[0], SEN_pith[0], PREC_pith[0], IoU, IoU_ring, IoU_crack, IoU_resin, IoU_pith]#values for all the variables
+
+df['90d'] = [mAP_90, AP50_90, mAP_ring_90, AP50_ring_90, mAP_crack_90, AP50_crack_90, mAP_resin_90, AP50_resin_90, mAP_pith_90, AP50_pith_90, TP_90[0],
+FP_90[0], FN_90[0], SEN_90[0], PREC_90[0], TP_ring_90[0], FP_ring_90[0], FN_ring_90[0], SEN_ring_90[0], PREC_ring_90[0], TP_crack_90[0], FP_crack_90[0],
+FN_crack_90[0], SEN_crack_90[0], PREC_crack_90[0], TP_resin_90[0], FP_resin_90[0], FN_resin_90[0], SEN_resin_90[0], PREC_resin_90[0], TP_pith_90[0],
+FP_pith_90[0], FN_pith_90[0], SEN_pith_90[0], PREC_pith_90[0], IoU_90, IoU_ring_90, IoU_crack_90, IoU_resin_90, IoU_pith_90]#values for all the variables
+
+df['45d'] = [mAP_45, AP50_45, mAP_ring_45, AP50_ring_45, mAP_crack_45, AP50_crack_45, mAP_resin_45, AP50_resin_45, mAP_pith_45, AP50_pith_45, TP_45[0],
+FP_45[0], FN_45[0], SEN_45[0], PREC_45[0], TP_ring_45[0], FP_ring_45[0], FN_ring_45[0], SEN_ring_45[0], PREC_ring_45[0], TP_crack_45[0], FP_crack_45[0],
+FN_crack_45[0], SEN_crack_45[0], PREC_crack_45[0], TP_resin_45[0], FP_resin_45[0], FN_resin_45[0], SEN_resin_45[0], PREC_resin_45[0], TP_pith_45[0],
+FP_pith_45[0], FN_pith_45[0], SEN_pith_45[0], PREC_pith_45[0], IoU_45, IoU_ring_45, IoU_crack_45, IoU_resin_45, IoU_pith_45]#values for all the variables
+print("df.shape", df.shape)
+
+# combined
+df['combined'] = [np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan, TPs_combined, FPs_combined,
+FNs_combined, SEN_combined, PREC_combined,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,
+IoU_combined_mask, np.nan,np.nan,np.nan,]
+
 # save the df as csv
 df.to_csv(os.path.join(weight_eval_DIR, 'Evaluation_{}.csv'.format(weight_name)))
 
 # save mAP graph
 plt.plot(iou_thresholds, APlist, label= 'normal')
-plt.plot(iou_thresholds, APlist90, label= '90d')
-plt.plot(iou_thresholds, APlist45, label= '45d')
+plt.plot(iou_thresholds, APlist_ring, label= 'ring')
+plt.plot(iou_thresholds, APlist_crack, label= 'crack')
+plt.plot(iou_thresholds, APlist_90, label= '90d')
+plt.plot(iou_thresholds, APlist_45, label= '45d')
 plt.ylabel('mAP')
 plt.xlabel('IoU')
 plt.legend()
@@ -810,12 +1015,28 @@ plt.close()
 ##save graph data
 df_mAP_graph = pd.DataFrame()
 df_mAP_graph['mAP'] = APlist
+df_mAP_graph['mAP_ring'] = APlist_ring
+df_mAP_graph['mAP_crack'] = APlist_crack
+df_mAP_graph['mAP_resin'] = APlist_resin
+df_mAP_graph['mAP_pith'] = APlist_pith
+df_mAP_graph['mAP_90'] = APlist_90
+df_mAP_graph['mAP_ring_90'] = APlist_ring_90
+df_mAP_graph['mAP_crack_90'] = APlist_crack_90
+df_mAP_graph['mAP_resin_90'] = APlist_resin_90
+df_mAP_graph['mAP_pith_90'] = APlist_pith_90
+df_mAP_graph['mAP_45'] = APlist_45
+df_mAP_graph['mAP_ring_45'] = APlist_ring_45
+df_mAP_graph['mAP_crack_45'] = APlist_crack_45
+df_mAP_graph['mAP_resin_45'] = APlist_resin_45
+df_mAP_graph['mAP_pith_45'] = APlist_pith_45
+
 df_mAP_graph['IoU_thresholds'] = iou_thresholds
 df_mAP_graph.to_csv(os.path.join(weight_eval_DIR, 'mAP_IoU_graph_data_{}.csv'.format(weight_name)))
 
 #save precission recall graph for mask and box together
-plt.plot(SEN_mask, PREC_mask, label= 'mask')
-plt.plot(SEN_bbox, PREC_bbox, label= 'bbox')
+plt.plot(SEN, PREC, label= 'general')
+plt.plot(SEN_ring, PREC_ring, label= 'ring')
+plt.plot(SEN_crack, PREC_crack, label= 'crack')
 plt.ylabel('Precision')
 plt.xlabel('Recall')
 plt.ylim(bottom = 0, top = 1)
@@ -824,9 +1045,9 @@ plt.legend()
 plt.savefig(os.path.join(weight_eval_DIR, 'PrecRec_{}.jpg'.format(weight_name)))
 plt.close()
 #save graph for all mask precision recal
-plt.plot(SEN_mask, PREC_mask, label= 'mask')
-plt.plot(SEN90_mask, PREC90_mask, label= 'mask90')
-plt.plot(SEN45_mask, PREC45_mask, label= 'mask45')
+plt.plot(SEN, PREC, label= 'general')
+plt.plot(SEN_90, PREC_90, label= '90')
+plt.plot(SEN_45, PREC_45, label= '45')
 plt.ylabel('Precision')
 plt.xlabel('Recall')
 plt.ylim(bottom = 0, top = 1)
@@ -834,13 +1055,40 @@ plt.xlim(left = 0, right = 1)
 plt.legend()
 plt.savefig(os.path.join(weight_eval_DIR, 'PrecRecAllMasks_{}.jpg'.format(weight_name)))
 plt.close()
+
 ##save precission recall data
 df_PrecRec = pd.DataFrame()
-df_PrecRec['Prec_mask'] = PREC_mask
-df_PrecRec['Rec_mask'] = SEN_mask
-df_PrecRec['Prec_bbox'] = PREC_bbox
-df_PrecRec['Rec_bbox'] = SEN_bbox
-df_PrecRec['Prec90_mask'] = PREC90_mask
-df_PrecRec['Rec90_mask'] = SEN90_mask
+df_PrecRec['Prec'] = PREC
+df_PrecRec['Rec'] = SEN
+df_PrecRec['Prec_ring'] = PREC_ring
+df_PrecRec['Rec_ring'] = SEN_ring
+df_PrecRec['Prec_crack'] = PREC_crack
+df_PrecRec['Rec_crack'] = SEN_crack
+df_PrecRec['Prec_resin'] = PREC_resin
+df_PrecRec['Rec_resin'] = SEN_resin
+df_PrecRec['Prec_pith'] = PREC_pith
+df_PrecRec['Rec_pith'] = SEN_pith
+
+df_PrecRec['Prec_90'] = PREC_90
+df_PrecRec['Rec_90'] = SEN_90
+df_PrecRec['Prec_ring_90'] = PREC_ring_90
+df_PrecRec['Rec_ring_90'] = SEN_ring_90
+df_PrecRec['Prec_crack_90'] = PREC_crack_90
+df_PrecRec['Rec_crack_90'] = SEN_crack_90
+df_PrecRec['Prec_resin_90'] = PREC_resin_90
+df_PrecRec['Rec_resin_90'] = SEN_resin_90
+df_PrecRec['Prec_pith_90'] = PREC_pith_90
+df_PrecRec['Rec_pith_90'] = SEN_pith_90
+
+df_PrecRec['Prec_45'] = PREC_45
+df_PrecRec['Rec_45'] = SEN_45
+df_PrecRec['Prec_ring_45'] = PREC_ring_45
+df_PrecRec['Rec_ring_45'] = SEN_ring_45
+df_PrecRec['Prec_crack_45'] = PREC_crack_45
+df_PrecRec['Rec_crack_45'] = SEN_crack_45
+df_PrecRec['Prec_resin_45'] = PREC_resin_45
+df_PrecRec['Rec_resin_45'] = SEN_resin_45
+df_PrecRec['Prec_pith_45'] = PREC_pith_45
+df_PrecRec['Rec_pith_45'] = SEN_pith_45
+
 df_PrecRec.to_csv(os.path.join(weight_eval_DIR, 'PrecRec_graph_data_{}.csv'.format(weight_name)))
-"""
