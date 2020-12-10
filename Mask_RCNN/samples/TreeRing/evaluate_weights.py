@@ -116,7 +116,7 @@ def TP_FP_FN_per_score_mask(gt_mask, pred_mask, scores, IoU_treshold):
         #print (mask_matrix_binary)
 
         #GT rings and predicted rigs
-        print(mask_matrix.shape)
+        #print(mask_matrix.shape)
         if mask_matrix.shape[0]==0:
             TPs.append(0)
             FPs.append(0)
@@ -692,11 +692,13 @@ for image_id in image_ids:
         gt_mask_flat = gt_mask_flat + gt_mask[:,:,m]
     #calcumate IoU
     combined_mask_binary = np.where(combined_mask > 0, 1, 0)
-    combined_mask_binary = np.reshape(combined_mask_binary, (1024,1024,1))
+    print(combined_mask_binary.shape)
+    #combined_mask_binary = np.reshape(combined_mask_binary, (1024,1024,1))
 
     #print('combined_mask_shape:', combined_mask_binary.shape)
     gt_mask_flat_binary = np.where(gt_mask_flat > 0, 1, 0)
-    gt_mask_flat_binary = np.reshape(gt_mask_flat_binary, (1024,1024,1))
+    print(gt_mask_flat_binary.shape)
+    #gt_mask_flat_binary = np.reshape(gt_mask_flat_binary, (1024,1024,1))
     #print('gt_mask_shape:', gt_mask_flat_binary.shape)
     IoU_combined_mask.append(utils.compute_overlaps_masks(gt_mask_flat_binary, combined_mask_binary))
 
