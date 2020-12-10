@@ -257,7 +257,7 @@ def TP_FP_FN_group(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, 
     TP_FP_FN_names = ["score_range", "TP", "FP", "FN","TP_ring", "FP_ring", "FN_ring","TP_crack", "FP_crack", "FN_crack","TP_resin", "FP_resin", "FN_resin", "TP_pith", "FP_pith", "FN_pith"]
     # if no mask is detected
     if pred_mask.shape[-1] == 0:
-         TP_FP_FN_general = [[0]*10]*15
+         TP_FP_FN_general = [[0]*10]*16
     else:
         # for all classes
         TP, FP, FN, score_range = TP_FP_FN_per_score_mask(gt_mask, pred_mask, pred_scores, IoU_treshold=IoU_treshold)
