@@ -107,19 +107,20 @@ def TP_FP_FN_per_score_mask(gt_mask, pred_mask, scores, IoU_treshold):
         #print(score_ids)
         mask_SR = np.take(pred_mask, score_ids, axis=2)
         #print('mask_SR.shape:', mask_SR.shape)
-        if mask_SR.shape[-1]==0:
+
+        mask_matrix = utils.compute_overlaps_masks(gt_mask, mask_SR)
+        #print("mask_matrix", mask_matrix)
+        #for every score range callculate TP, ...append by the socre ranges
+        # making binary numpy array with IoU treshold
+        mask_matrix_binary = np.where(mask_matrix > IoU_treshold, 1, 0)
+        #print (mask_matrix_binary)
+
+        #GT rings and predicted rigs
+        if len(mask_matrix[0])==0:
             TPs.append(0)
             FPs.append(0)
             FNs.append(0)
         else:
-            mask_matrix = utils.compute_overlaps_masks(gt_mask, mask_SR)
-            #print("mask_matrix", mask_matrix)
-        #for every score range callculate TP, ...append by the socre ranges
-            # making binary numpy array with IoU treshold
-            mask_matrix_binary = np.where(mask_matrix > IoU_treshold, 1, 0)
-            #print (mask_matrix_binary)
-
-            #GT rings and predicted rigs
             gt_r = len(mask_matrix)
             pred_r = len(mask_matrix[0])
 
