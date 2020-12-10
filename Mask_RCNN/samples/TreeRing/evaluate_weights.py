@@ -576,17 +576,20 @@ for image_id in image_ids:
     image_45 = skimage.transform.rotate(image, angle = 45, resize=True, preserve_range=True).astype(np.uint8)
     results = model.detect([image_45], verbose=0)
     r = results[0]
+    if r['masks'].shape[-1] == 0:
+        mask_45_back = np.zeros(shape=(imgheight, imgheight))
 
-    # rotate the mask back
-    maskr2_back = skimage.transform.rotate(r['masks'], angle = -45, resize=False)
-    #crop to the right size
-    imgheight, imgwidth = image.shape[:2]
-    imgheight2, imgwidth2 = maskr2_back.shape[:2]
-    #print('img_shape:', image.shape)
-    #print('img_45_shape:', maskr2_back.shape)
-    to_crop = int((imgheight2 - imgheight)/2)
-    mask_45_back = maskr2_back[to_crop: (to_crop+int(imgheight)), to_crop: (to_crop+int(imgheight))]
-    mask_45_classes = r['class_ids']
+    else:
+        # rotate the mask back
+        maskr2_back = skimage.transform.rotate(r['masks'], angle = -45, resize=False)
+        #crop to the right size
+        imgheight, imgwidth = image.shape[:2]
+        imgheight2, imgwidth2 = maskr2_back.shape[:2]
+        #print('img_shape:', image.shape)
+        #print('img_45_shape:', maskr2_back.shape)
+        to_crop = int((imgheight2 - imgheight)/2)
+        mask_45_back = maskr2_back[to_crop: (to_crop+int(imgheight)), to_crop: (to_crop+int(imgheight))]
+        mask_45_classes = r['class_ids']
     # extract bounding boxes based from the masks
     extracted_bboxes = utils.extract_bboxes(mask_45_back)
 
@@ -658,8 +661,8 @@ for image_id in image_ids:
     else:
         for m in range(0,nmasks):
             mask_normal_flat = mask_normal_flat + mask_normal[:,:,m]
-    print("nmasks", nmasks)
-    print("mask_normal_flat", mask_normal_flat.shape)
+    #print("nmasks", nmasks)
+    #print("mask_normal_flat", mask_normal_flat.shape)
     #plt.imshow(mask_normal_flat)
     #plt.show()
     #90d flatten
@@ -671,8 +674,8 @@ for image_id in image_ids:
     else:
         for m in range(0,nmasks):
             mask_90_flat = mask_90_flat + mask_90_back[:,:,m]
-    print("nmasks", nmasks)
-    print("mask_90_flat", mask_90_flat.shape)
+    #print("nmasks", nmasks)
+    #print("mask_90_flat", mask_90_flat.shape)
     #45d flatten
     mask_45_flat = np.zeros(shape=(imgheight, imgheight))
     mask_45_back = mask_45_back[:,:,mask_45_classes==1] # to get only masks for rings
@@ -682,11 +685,11 @@ for image_id in image_ids:
     else:
         for m in range(0,nmasks):
             mask_45_flat = mask_45_flat + mask_45_back[:,:,m]
-    print("nmasks", nmasks)
-    print("mask_45_flat", mask_45_flat.shape)
+    #print("nmasks", nmasks)
+    #print("mask_45_flat", mask_45_flat.shape)
     #combine to one
     combined_mask = mask_normal_flat + mask_90_flat + mask_45_flat
-    print("combined_mask", combined_mask.shape)
+    #print("combined_mask", combined_mask.shape)
     #plt.imshow(combined_mask)
     #plt.show()
 
