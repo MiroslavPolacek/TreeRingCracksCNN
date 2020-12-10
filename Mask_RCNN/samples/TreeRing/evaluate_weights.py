@@ -654,7 +654,7 @@ for image_id in image_ids:
     mask_normal = mask_normal[:,:, mask_normal_classes==1] # to get only masks for rings
     nmasks = mask_normal.shape[2]
     if nmasks == 0:
-        mask_normal_flat = np.zeros(shape=(imgheight, imgheight, 1))
+        mask_normal_flat = np.zeros(shape=(imgheight, imgheight))
     else:
         for m in range(0,nmasks):
             mask_normal_flat = mask_normal_flat + mask_normal[:,:,m]
@@ -667,7 +667,7 @@ for image_id in image_ids:
     mask_90_back = mask_90_back[:,:,mask_90_classes==1] # to get only masks for rings
     nmasks = mask_90_back.shape[2]
     if nmasks == 0:
-        mask_90_flat = np.zeros(shape=(imgheight, imgheight, 1))
+        mask_90_flat = np.zeros(shape=(imgheight, imgheight))
     else:
         for m in range(0,nmasks):
             mask_90_flat = mask_90_flat + mask_90_back[:,:,m]
@@ -678,7 +678,7 @@ for image_id in image_ids:
     mask_45_back = mask_45_back[:,:,mask_45_classes==1] # to get only masks for rings
     nmasks = mask_45_back.shape[2]
     if nmasks == 0:
-        mask_45_flat = np.zeros(shape=(imgheight, imgheight, 1))
+        mask_45_flat = np.zeros(shape=(imgheight, imgheight))
     else:
         for m in range(0,nmasks):
             mask_45_flat = mask_45_flat + mask_45_back[:,:,m]
@@ -686,7 +686,7 @@ for image_id in image_ids:
     print("mask_45_flat", mask_45_flat.shape)
     #combine to one
     combined_mask = mask_normal_flat + mask_90_flat + mask_45_flat
-    print("combined_mask", combined_mask)
+    print("combined_mask", combined_mask.shape)
     #plt.imshow(combined_mask)
     #plt.show()
 
