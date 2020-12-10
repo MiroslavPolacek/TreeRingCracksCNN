@@ -658,6 +658,8 @@ for image_id in image_ids:
     else:
         for m in range(0,nmasks):
             mask_normal_flat = mask_normal_flat + mask_normal[:,:,m]
+    print("nmasks", nmasks)
+    print("mask_normal_flat", mask_normal_flat.shape)
     #plt.imshow(mask_normal_flat)
     #plt.show()
     #90d flatten
@@ -669,6 +671,8 @@ for image_id in image_ids:
     else:
         for m in range(0,nmasks):
             mask_90_flat = mask_90_flat + mask_90_back[:,:,m]
+    print("nmasks", nmasks)
+    print("mask_90_flat", mask_90_flat.shape)
     #45d flatten
     mask_45_flat = np.zeros(shape=(imgheight, imgheight))
     mask_45_back = mask_45_back[:,:,mask_45_classes==1] # to get only masks for rings
@@ -678,9 +682,11 @@ for image_id in image_ids:
     else:
         for m in range(0,nmasks):
             mask_45_flat = mask_45_flat + mask_45_back[:,:,m]
-
+    print("nmasks", nmasks)
+    print("mask_45_flat", mask_45_flat.shape)
     #combine to one
     combined_mask = mask_normal_flat + mask_90_flat + mask_45_flat
+    print("combined_mask", combined_mask)
     #plt.imshow(combined_mask)
     #plt.show()
 
@@ -692,7 +698,7 @@ for image_id in image_ids:
         gt_mask_flat = gt_mask_flat + gt_mask[:,:,m]
     #calcumate IoU
     combined_mask_binary = np.where(combined_mask > 0, 1, 0)
-    print(combined_mask_binary.shape)
+    print("combined_mask_binary",combined_mask_binary.shape)
     combined_mask_binary = np.reshape(combined_mask_binary, (1024,1024,1))
 
     #print('combined_mask_shape:', combined_mask_binary.shape)
