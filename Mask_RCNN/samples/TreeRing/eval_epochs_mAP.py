@@ -90,7 +90,7 @@ def compute_batch_ap(dataset, image_ids, verbose=1):
     mask_IoU =[]
     for image_id in image_ids:
         # Load image
-        
+
         image, image_meta, gt_class_id, gt_bbox, gt_mask =\
             modellib.load_image_gt(dataset, config, image_id, use_mini_mask=False)
 
@@ -121,7 +121,7 @@ AP_per_weight = []
 AP_per_weight_variance = []
 
 weight_list = os.listdir(args.weight_folder)
-short_weight_list = weight_list # I did this just to check for some subset of the weights. E.g. last 100
+short_weight_list = weight_list[-150:] # I did this just to check for some subset of the weights. E.g. last 100
 for f in short_weight_list:
     if f.endswith('h5'):
         #print(f)
