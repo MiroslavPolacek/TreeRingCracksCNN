@@ -138,7 +138,7 @@ class BalloonConfig(Config):
 
     # Skip detections with < 90% confidence 0.9 was for baloons
     # for nucleus 0
-    DETECTION_MIN_CONFIDENCE = 0.90
+    DETECTION_MIN_CONFIDENCE = 0.50
 
     # Learning rate and momentum
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes

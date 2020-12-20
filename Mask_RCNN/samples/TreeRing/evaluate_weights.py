@@ -459,10 +459,10 @@ for image_id in image_ids:
     mAP_pith.append(AP_general[AP_names.index("mAP_pith")])
     AP50_pith.append(AP_general[AP_names.index("AP50_pith")])
     APlist_pith.append(AP_general[AP_names.index("APlist_pith")])
-    print("mAP", mAP)
-    print("AP50", AP50)
-    print("mAP_ring", mAP_ring)
-    print("AP50_ring", AP50_ring)
+    #print("mAP", mAP)
+    #print("AP50", AP50)
+    #print("mAP_ring", mAP_ring)
+    #print("AP50_ring", AP50_ring)
 
     #(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, IoU_treshold=0.5)
     TP_general, TP_names = TP_FP_FN_group(gt_mask, gt_class_id, r['masks'], r['class_ids'], r['scores'], IoU_treshold=0.5)
@@ -482,9 +482,9 @@ for image_id in image_ids:
     TP_pith.append(TP_general[TP_names.index("TP_pith")])
     FP_pith.append(TP_general[TP_names.index("FP_pith")])
     FN_pith.append(TP_general[TP_names.index("FN_pith")])
-    print("TP_ring", TP_ring)
-    print("FP_crack", FP_crack)
-    print("FP_ring", FP_ring)
+    #print("TP_ring", TP_ring)
+    #print("FP_crack", FP_crack)
+    #print("FP_ring", FP_ring)
 
     IoU_general, IoU_names = IoU_group(gt_mask, gt_class_id, r['masks'], r['class_ids'])
 
@@ -493,9 +493,9 @@ for image_id in image_ids:
     IoU_crack.append(IoU_general[IoU_names.index("IoU_crack")])
     IoU_resin.append(IoU_general[IoU_names.index("IoU_resin")])
     IoU_pith.append(IoU_general[IoU_names.index("IoU_pith")])
-    print("IoU", IoU)
-    print("IoU_crack", IoU_crack)
-    print("IoU_resin", IoU_resin)
+    #print("IoU", IoU)
+    #print("IoU_crack", IoU_crack)
+    #print("IoU_resin", IoU_resin)
 
 ###### DETECT IMAGE 90degree
 
@@ -531,10 +531,10 @@ for image_id in image_ids:
     mAP_pith_90.append(AP_general[AP_names.index("mAP_pith")])
     AP50_pith_90.append(AP_general[AP_names.index("AP50_pith")])
     APlist_pith_90.append(AP_general[AP_names.index("APlist_pith")])
-    print("mAP_90", mAP_90)
-    print("AP50_90", AP50_90)
-    print("mAP_ring_90", mAP_ring_90)
-    print("AP50_ring_90", AP50_ring_90)
+    #print("mAP_90", mAP_90)
+    #print("AP50_90", AP50_90)
+    #print("mAP_ring_90", mAP_ring_90)
+    #print("AP50_ring_90", AP50_ring_90)
 
     #(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, IoU_treshold=0.5)
     TP_general, TP_names = TP_FP_FN_group(gt_mask, gt_class_id, mask_90_back, r['class_ids'], r['scores'], IoU_treshold=0.5)
@@ -554,9 +554,9 @@ for image_id in image_ids:
     TP_pith_90.append(TP_general[TP_names.index("TP_pith")])
     FP_pith_90.append(TP_general[TP_names.index("FP_pith")])
     FN_pith_90.append(TP_general[TP_names.index("FN_pith")])
-    print("TP_ring_90", TP_ring_90)
-    print("FP_crack_90", FP_crack_90)
-    print("FP_ring_90", FP_ring_90)
+    #print("TP_ring_90", TP_ring_90)
+    #print("FP_crack_90", FP_crack_90)
+    #print("FP_ring_90", FP_ring_90)
 
     IoU_general, IoU_names = IoU_group(gt_mask, gt_class_id, mask_90_back, r['class_ids'])
 
@@ -565,9 +565,9 @@ for image_id in image_ids:
     IoU_crack_90.append(IoU_general[IoU_names.index("IoU_crack")])
     IoU_resin_90.append(IoU_general[IoU_names.index("IoU_resin")])
     IoU_pith_90.append(IoU_general[IoU_names.index("IoU_pith")])
-    print("IoU_90", IoU_90)
-    print("IoU_crack_90", IoU_crack_90)
-    print("IoU_resin_90", IoU_resin_90)
+    #print("IoU_90", IoU_90)
+    #print("IoU_crack_90", IoU_crack_90)
+    #print("IoU_resin_90", IoU_resin_90)
 
 
 ###### DETECT IMAGE 45degree
@@ -611,10 +611,10 @@ for image_id in image_ids:
     mAP_pith_45.append(AP_general[AP_names.index("mAP_pith")])
     AP50_pith_45.append(AP_general[AP_names.index("AP50_pith")])
     APlist_pith_45.append(AP_general[AP_names.index("APlist_pith")])
-    print("mAP_45", mAP_45)
-    print("AP50_45", AP50_45)
-    print("mAP_ring_45", mAP_ring_45)
-    print("AP50_ring_45", AP50_ring_45)
+    #print("mAP_45", mAP_45)
+    #print("AP50_45", AP50_45)
+    #print("mAP_ring_45", mAP_ring_45)
+    #print("AP50_ring_45", AP50_ring_45)
 
     #(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, IoU_treshold=0.5)
     TP_general, TP_names = TP_FP_FN_group(gt_mask, gt_class_id, mask_45_back, r['class_ids'], r['scores'], IoU_treshold=0.5)
@@ -634,9 +634,9 @@ for image_id in image_ids:
     TP_pith_45.append(TP_general[TP_names.index("TP_pith")])
     FP_pith_45.append(TP_general[TP_names.index("FP_pith")])
     FN_pith_45.append(TP_general[TP_names.index("FN_pith")])
-    print("TP_ring_45", TP_ring_45)
-    print("FP_crack_45", FP_crack_45)
-    print("FP_ring_45", FP_ring_45)
+    #print("TP_ring_45", TP_ring_45)
+    #print("FP_crack_45", FP_crack_45)
+    #print("FP_ring_45", FP_ring_45)
 
     IoU_general, IoU_names = IoU_group(gt_mask, gt_class_id, mask_45_back, r['class_ids'])
 
@@ -645,9 +645,9 @@ for image_id in image_ids:
     IoU_crack_45.append(IoU_general[IoU_names.index("IoU_crack")])
     IoU_resin_45.append(IoU_general[IoU_names.index("IoU_resin")])
     IoU_pith_45.append(IoU_general[IoU_names.index("IoU_pith")])
-    print("IoU_45", IoU_45)
-    print("IoU_crack_45", IoU_crack_45)
-    print("IoU_resin_45", IoU_resin_45)
+    #print("IoU_45", IoU_45)
+    #print("IoU_crack_45", IoU_crack_45)
+    #print("IoU_resin_45", IoU_resin_45)
 
 
 
@@ -701,12 +701,12 @@ for image_id in image_ids:
         gt_mask_flat = gt_mask_flat + gt_mask[:,:,m]
     #calcumate IoU
     combined_mask_binary = np.where(combined_mask > 0, 1, 0)
-    print("combined_mask_binary",combined_mask_binary.shape)
+    #print("combined_mask_binary",combined_mask_binary.shape)
     combined_mask_binary = np.reshape(combined_mask_binary, (1024,1024,1))
 
     #print('combined_mask_shape:', combined_mask_binary.shape)
     gt_mask_flat_binary = np.where(gt_mask_flat > 0, 1, 0)
-    print(gt_mask_flat_binary.shape)
+    #print(gt_mask_flat_binary.shape)
     gt_mask_flat_binary = np.reshape(gt_mask_flat_binary, (1024,1024,1))
     #print('gt_mask_shape:', gt_mask_flat_binary.shape)
     IoU_combined_mask.append(utils.compute_overlaps_masks(gt_mask_flat_binary, combined_mask_binary))
@@ -750,7 +750,7 @@ for image_id in image_ids:
     #FN
     FN_comb = gt_r - TP_comb
     FNs_combined.append(FN_comb)
-print("IoU_combined_mask",IoU_combined_mask)
+#print("IoU_combined_mask",IoU_combined_mask)
 
 #calculate averages for all images
 #0
@@ -762,7 +762,14 @@ APlist = np.mean(APlist, axis=0)
 mAP_ring = np.mean(mAP_ring)
 AP50_ring = np.mean(AP50_ring)
 APlist_ring = np.mean(APlist_ring, axis=0)
+print("mAP_crack", mAP_crack)
+print("mAP_crack_45", mAP_crack_45)
+print("mAP_crack_90", mAP_crack_90)
 mAP_crack = np.mean(mAP_crack)
+print("mAP_crack", mAP_crack)
+print("AP50_crack", AP50_crack)
+print("AP50_crack_45", AP50_crack_45)
+print("AP50_crack_90", AP50_crack_90)
 AP50_crack = np.mean(AP50_crack)
 APlist_crack = np.mean(APlist_crack, axis=0)
 mAP_resin = np.mean(mAP_resin)
@@ -779,8 +786,8 @@ FN = np.array(np.sum(FN, axis=0))
 ### calculate sensitivity and precission
 SEN = TP/(TP+FN)
 PREC = TP/(TP+FP)
-print("SEN", SEN)
-print("PREC", PREC)
+#print("SEN", SEN)
+#print("PREC", PREC)
 
 TP_ring = np.array(np.sum(TP_ring, axis=0))
 FP_ring = np.array(np.sum(FP_ring, axis=0))
@@ -802,7 +809,7 @@ FN_resin = np.array(np.sum(FN_resin, axis=0))
 ### calculate sensitivity and precission
 SEN_resin = TP_resin/(TP_resin+FN_resin)
 PREC_resin = TP_resin/(TP_resin+FP_resin)
-print("SEN_resin", SEN_resin)
+#print("SEN_resin", SEN_resin)
 TP_pith = np.array(np.sum(TP_pith, axis=0))
 FP_pith = np.array(np.sum(FP_pith, axis=0))
 FN_pith = np.array(np.sum(FN_pith, axis=0))
@@ -820,7 +827,7 @@ IoU_pith = np.mean(IoU_pith)
 # 90
 ## AP group
 mAP_90 = np.mean(mAP_90)
-print("mAP_90", mAP_90)
+#print("mAP_90", mAP_90)
 AP50_90 = np.mean(AP50_90)
 APlist_90 = np.mean(APlist_90, axis=0)
 mAP_ring_90 = np.mean(mAP_ring_90)
@@ -843,8 +850,8 @@ FN_90 = np.array(np.sum(FN_90, axis=0))
 ### calculate sensitivity and precission
 SEN_90 = TP_90/(TP_90+FN_90)
 PREC_90 = TP_90/(TP_90+FP_90)
-print("SEN_90", SEN_90)
-print("PREC_90", PREC_90)
+#print("SEN_90", SEN_90)
+#print("PREC_90", PREC_90)
 
 TP_ring_90 = np.array(np.sum(TP_ring_90, axis=0))
 FP_ring_90 = np.array(np.sum(FP_ring_90, axis=0))
@@ -883,7 +890,7 @@ IoU_pith_90 = np.mean(IoU_pith_90)
 
 # 45
 mAP_45 = np.mean(mAP_45)
-print("mAP_45", mAP_45)
+#print("mAP_45", mAP_45)
 AP50_45 = np.mean(AP50_45)
 APlist_45 = np.mean(APlist_45, axis=0)
 mAP_ring_45 = np.mean(mAP_ring_45)
@@ -906,8 +913,8 @@ FN_45 = np.array(np.sum(FN_45, axis=0))
 ### calculate sensitivity and precission
 SEN_45 = TP_45/(TP_45+FN_45)
 PREC_45 = TP_45/(TP_45+FP_45)
-print("SEN_45", SEN_45)
-print("PREC_45", PREC_45)
+#print("SEN_45", SEN_45)
+#print("PREC_45", PREC_45)
 
 TP_ring_45 = np.array(np.sum(TP_ring_45, axis=0))
 FP_ring_45 = np.array(np.sum(FP_ring_45, axis=0))
@@ -929,7 +936,7 @@ FN_resin_45 = np.array(np.sum(FN_resin_45, axis=0))
 ### calculate sensitivity and precission
 SEN_resin_45 = TP_resin_45/(TP_resin_45+FN_resin_45)
 PREC_resin_45 = TP_resin_45/(TP_resin_45+FP_resin_45)
-print("SEN_resin_45", SEN_resin_45)
+#print("SEN_resin_45", SEN_resin_45)
 TP_pith_45 = np.array(np.sum(TP_pith_45, axis=0))
 FP_pith_45 = np.array(np.sum(FP_pith_45, axis=0))
 FN_pith_45 = np.array(np.sum(FN_pith_45, axis=0))
@@ -945,38 +952,43 @@ IoU_resin_45 = np.mean(IoU_resin_45)
 IoU_pith_45 = np.mean(IoU_pith_45)
 
 # Prec and recall for combined
-print('TPs_combined', TPs_combined)
+#print('TPs_combined', TPs_combined)
 TPs_combined = np.sum(TPs_combined)
 FPs_combined = np.sum(FPs_combined)
 FNs_combined = np.sum(FNs_combined)
-print('TPs_combined', TPs_combined)
+#print('TPs_combined', TPs_combined)
 SEN_combined = TPs_combined/(TPs_combined+FNs_combined)
 PREC_combined = TPs_combined/(TPs_combined+FPs_combined)
 IoU_combined_mask = np.mean(IoU_combined_mask)
 
 iou_thresholds = np.arange(0.5, 1.0, 0.05) # for graph
 
+print("mAP_crack", mAP_crack)
+print("mAP_crack_45", mAP_crack_45)
+print("mAP_crack_90", mAP_crack_90)
+print("AP50_crack", AP50_crack)
+print("AP50_crack_45", AP50_crack_45)
+print("AP50_crack_90", AP50_crack_90)
 #######################################################################
 #Save output
 #######################################################################
-# SOLVE THIS AT THE END SO TESTS CAN RUN
 #get folder path and make folder
-run_path = args.weight
+weight_path = args.weight
 #print(run_path)
-run_split_1 = os.path.split(run_path)
+weight_path_split_1 = os.path.split(weight_path)
 #print(run_split_1)
-weight_name = run_split_1[1]
+weight_name = weight_path_split_1[1]
 #print('weight_name:', weight_name)
-run_ID = os.path.split(run_split_1[0])[1]
+training_ID = os.path.split(weight_path_split_1[0])[1]
 #print('run_ID:', run_ID)
 
 model_eval_DIR = os.path.join(ROOT_DIR, 'samples/TreeRing/model_eval')
 #print(model_eval_DIR)
-run_eval_DIR = os.path.join(model_eval_DIR,run_ID)
-weight_eval_DIR = os.path.join(run_eval_DIR, weight_name)
+training_eval_DIR = os.path.join(model_eval_DIR,training_ID)
+weight_eval_DIR = os.path.join(training_eval_DIR, weight_name)
 
-if not os.path.exists(run_eval_DIR): #check if it already exists and if not make it
-    os.makedirs(run_eval_DIR)
+if not os.path.exists(training_eval_DIR): #check if it already exists and if not make it
+    os.makedirs(training_eval_DIR)
 
 if not os.path.exists(weight_eval_DIR): #check if it already exists and if not make it
     os.makedirs(weight_eval_DIR)
@@ -1003,7 +1015,7 @@ FP_45[0], FN_45[0], SEN_45[0], PREC_45[0], TP_ring_45[0], FP_ring_45[0], FN_ring
 FN_crack_45[0], SEN_crack_45[0], PREC_crack_45[0], TP_resin_45[0], FP_resin_45[0], FN_resin_45[0], SEN_resin_45[0], PREC_resin_45[0], TP_pith_45[0],
 FP_pith_45[0], FN_pith_45[0], SEN_pith_45[0], PREC_pith_45[0], IoU_45, IoU_ring_45, IoU_crack_45, IoU_resin_45, IoU_pith_45]#values for all the variables
 print("df.shape", df.shape)
-
+print("Data frame", df)
 # combined
 df['combined'] = [np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan, TPs_combined, FPs_combined,
 FNs_combined, SEN_combined, PREC_combined,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,
