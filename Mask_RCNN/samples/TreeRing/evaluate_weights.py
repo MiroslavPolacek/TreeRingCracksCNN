@@ -246,6 +246,7 @@ def mAP_group(image, gt_class_id, gt_bbox, gt_mask, pred_bbox, pred_mask, pred_c
         # for each class_id
         for i in range(1,5):
             AP_list = compute_ap_range_list(gt_bbox[gt_class_id==i], gt_class_id[gt_class_id==i], gt_mask[:,:,gt_class_id==i], pred_bbox[pred_class_id==i], pred_class_id[pred_class_id==i], pred_scores[pred_class_id==i], pred_mask[:,:,pred_class_id==i], verbose=0)
+            print("mAPlist category {} is: {}".format(i, AP_list))
             mAP = np.array(AP_list).mean()
             AP50 = AP_list[0]
             AP_general.extend([mAP, AP50, AP_list])
@@ -453,6 +454,7 @@ for image_id in image_ids:
     mAP_crack.append(AP_general[AP_names.index("mAP_crack")])
     AP50_crack.append(AP_general[AP_names.index("AP50_crack")])
     APlist_crack.append(AP_general[AP_names.index("APlist_crack")])
+    print("APlist_crack", APlist_crack)
     mAP_resin.append(AP_general[AP_names.index("mAP_resin")])
     AP50_resin.append(AP_general[AP_names.index("AP50_resin")])
     APlist_resin.append(AP_general[AP_names.index("APlist_resin")])
