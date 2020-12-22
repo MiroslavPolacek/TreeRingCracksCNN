@@ -237,6 +237,7 @@ def mAP_group(image, gt_class_id, gt_bbox, gt_mask, pred_bbox, pred_mask, pred_c
     # if no mask is detected
     if pred_mask.shape[-1] == 0:
         AP_general = [0,0,[0]*10]*5
+        print("mAP_group printed zero for this image")
     else:
     # mAP, AP50 for all classes
         AP_list = compute_ap_range_list(gt_bbox, gt_class_id, gt_mask, pred_bbox, pred_class_id, pred_scores, pred_mask, verbose=0)
