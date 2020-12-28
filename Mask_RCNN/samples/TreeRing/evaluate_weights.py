@@ -7,6 +7,12 @@ THIS TO TEST RUNS
 conda activate TreeRingCNNtest &&
 cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
 python3 evaluate_weights.py  --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini/  --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
+
+THIS TO TEST RUNS
+conda activate TreeRingCNNtest &&
+cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
+python3 evaluate_weights.py  --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering/  --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
+
 """
 #######################################################################
 #Arguments
@@ -235,22 +241,35 @@ def mAP_group(image, gt_class_id, gt_bbox, gt_mask, pred_bbox, pred_mask, pred_c
     AP_general = []
     AP_names = ["mAP", "AP50", "APlist","mAP_ring", "AP50_ring", "APlist_ring","mAP_crack", "AP50_crack", "APlist_crack","mAP_resin", "AP50_resin", "APlist_resin","mAP_pith", "AP50_pith", "APlist_pith" ]
     # if no mask is detected
-    if pred_mask.shape[-1] == 0:
-        AP_general = [0,0,[0]*10]*5
-        print("mAP_group printed zero for this image")
-    else:
+    #if pred_mask.shape[-1] == 0:
+        #AP_general = [0,0,[0]*10]*5
+        #print("mAP_group gave zeroes for this image")
+    #else:
+
     # mAP, AP50 for all classes
-        AP_list = compute_ap_range_list(gt_bbox, gt_class_id, gt_mask, pred_bbox, pred_class_id, pred_scores, pred_mask, verbose=0)
-        mAP = np.array(AP_list).mean()
-        AP50 = AP_list[0]
-        AP_general = [mAP, AP50, AP_list]
-        # for each class_id
-        for i in range(1,5):
+    AP_list = compute_ap_range_list(gt_bbox, gt_class_id, gt_mask, pred_bbox, pred_class_id, pred_scores, pred_mask, verbose=0)
+    mAP = np.array(AP_list).mean()
+    #print("mAP for this image", mAP)
+    AP50 = AP_list[0]
+    AP_general = [mAP, AP50, AP_list]
+    # for each class_id
+    for i in range(1,5):
+        #print("LOOP START", i)
+        if gt_mask[:,:,gt_class_id==i].shape[-1] > 0:
             AP_list = compute_ap_range_list(gt_bbox[gt_class_id==i], gt_class_id[gt_class_id==i], gt_mask[:,:,gt_class_id==i], pred_bbox[pred_class_id==i], pred_class_id[pred_class_id==i], pred_scores[pred_class_id==i], pred_mask[:,:,pred_class_id==i], verbose=0)
-            print("mAPlist category {} is: {}".format(i, AP_list))
             mAP = np.array(AP_list).mean()
             AP50 = AP_list[0]
-            AP_general.extend([mAP, AP50, AP_list])
+            #print("AP50 fopr category {} is {}".format(i, AP50))
+        else:
+            mAP = np.nan
+            AP50 = np.nan
+            AP_list = [np.nan]*10
+
+        #print("mAPlist category {} is: {}".format(i, AP_list))
+        #print("gt_masks", gt_mask[:,:,gt_class_id==i].shape[-1])
+        #print("predicted masks", pred_mask[:,:,pred_class_id==i].shape[-1])
+        #print("AP50 out of if else for category {} is {}".format(i, AP50))
+        AP_general.extend([mAP, AP50, AP_list])
 
     return AP_general, AP_names #mAP_group_values #should be a list of lists of names and values
 ###########################################################################
@@ -432,7 +451,7 @@ for image_id in image_ids:
     image, image_meta, gt_class_id, gt_bbox, gt_mask =\
         modellib.load_image_gt(dataset, config,
                                image_id, use_mini_mask=False)
-    print('Evaluating image:', image_id)
+    print('EVALUATING IMAGE:', image_id)
     #print('image shape:', image.shape)
     imgheight = image.shape[0]
 
@@ -455,13 +474,15 @@ for image_id in image_ids:
     mAP_crack.append(AP_general[AP_names.index("mAP_crack")])
     AP50_crack.append(AP_general[AP_names.index("AP50_crack")])
     APlist_crack.append(AP_general[AP_names.index("APlist_crack")])
-    print("APlist_crack", APlist_crack)
+    #print("APlist_crack", APlist_crack)
     mAP_resin.append(AP_general[AP_names.index("mAP_resin")])
     AP50_resin.append(AP_general[AP_names.index("AP50_resin")])
     APlist_resin.append(AP_general[AP_names.index("APlist_resin")])
+    #print("APlist_resin", APlist_resin)
     mAP_pith.append(AP_general[AP_names.index("mAP_pith")])
     AP50_pith.append(AP_general[AP_names.index("AP50_pith")])
     APlist_pith.append(AP_general[AP_names.index("APlist_pith")])
+    #print("APlist_pith", APlist_pith)
     #print("mAP", mAP)
     #print("AP50", AP50)
     #print("mAP_ring", mAP_ring)
@@ -727,7 +748,7 @@ for image_id in image_ids:
     #plt.imshow(separated_mask[:,:,0])
     #plt.show()
     mask_matrix = utils.compute_overlaps_masks(gt_mask, separated_mask)
-    #print(mask_matrix)
+    #print("mask_matrix.shape", mask_matrix.shape)
     # making binary numpy array with IoU treshold
     IoU_treshold = 0.5 # i set it less because combined mask is bigger and it does not matter i think
     mask_matrix_binary = np.where(mask_matrix > IoU_treshold, 1, 0)
@@ -748,7 +769,7 @@ for image_id in image_ids:
     sum_pred = np.sum(mask_matrix_binary, axis=0)
     sum_pred_binary = np.where(sum_pred > 0, 1, 0)
     FP_comb = pred_r - np.sum(sum_pred_binary)
-    FPs_combined.append(FP)
+    FPs_combined.append(FP_comb)
     #print('FP:', FP)
     #FN
     FN_comb = gt_r - TP_comb
@@ -758,29 +779,29 @@ for image_id in image_ids:
 #calculate averages for all images
 #0
 ## AP group
-mAP = np.mean(mAP)
+mAP = np.nanmean(mAP)
 print("mAP", mAP)
-AP50 = np.mean(AP50)
-APlist = np.mean(APlist, axis=0)
-mAP_ring = np.mean(mAP_ring)
-AP50_ring = np.mean(AP50_ring)
-APlist_ring = np.mean(APlist_ring, axis=0)
+AP50 = np.nanmean(AP50)
+APlist = np.nanmean(APlist, axis=0)
+mAP_ring = np.nanmean(mAP_ring)
+AP50_ring = np.nanmean(AP50_ring)
+APlist_ring = np.nanmean(APlist_ring, axis=0)
 print("mAP_crack", mAP_crack)
 print("mAP_crack_45", mAP_crack_45)
 print("mAP_crack_90", mAP_crack_90)
-mAP_crack = np.mean(mAP_crack)
+mAP_crack = np.nanmean(mAP_crack)
 print("mAP_crack", mAP_crack)
 print("AP50_crack", AP50_crack)
 print("AP50_crack_45", AP50_crack_45)
 print("AP50_crack_90", AP50_crack_90)
-AP50_crack = np.mean(AP50_crack)
-APlist_crack = np.mean(APlist_crack, axis=0)
-mAP_resin = np.mean(mAP_resin)
-AP50_resin = np.mean(AP50_resin)
-APlist_resin = np.mean(APlist_resin, axis=0)
-mAP_pith = np.mean(mAP_pith)
-AP50_pith = np.mean(AP50_pith)
-APlist_pith = np.mean(APlist_pith, axis=0)
+AP50_crack = np.nanmean(AP50_crack)
+APlist_crack = np.nanmean(APlist_crack, axis=0)
+mAP_resin = np.nanmean(mAP_resin)
+AP50_resin = np.nanmean(AP50_resin)
+APlist_resin = np.nanmean(APlist_resin, axis=0)
+mAP_pith = np.nanmean(mAP_pith)
+AP50_pith = np.nanmean(AP50_pith)
+APlist_pith = np.nanmean(APlist_pith, axis=0)
 
 ## TP_FP_FN_group
 TP = np.array(np.sum(TP, axis=0))
@@ -829,22 +850,22 @@ IoU_pith = np.mean(IoU_pith)
 
 # 90
 ## AP group
-mAP_90 = np.mean(mAP_90)
+mAP_90 = np.nanmean(mAP_90)
 #print("mAP_90", mAP_90)
-AP50_90 = np.mean(AP50_90)
-APlist_90 = np.mean(APlist_90, axis=0)
-mAP_ring_90 = np.mean(mAP_ring_90)
-AP50_ring_90 = np.mean(AP50_ring_90)
-APlist_ring_90 = np.mean(APlist_ring_90, axis=0)
-mAP_crack_90 = np.mean(mAP_crack_90)
-AP50_crack_90 = np.mean(AP50_crack_90)
-APlist_crack_90 = np.mean(APlist_crack_90, axis=0)
-mAP_resin_90 = np.mean(mAP_resin_90)
-AP50_resin_90 = np.mean(AP50_resin_90)
-APlist_resin_90 = np.mean(APlist_resin_90, axis=0)
-mAP_pith_90 = np.mean(mAP_pith_90)
-AP50_pith_90 = np.mean(AP50_pith_90)
-APlist_pith_90 = np.mean(APlist_pith_90, axis=0)
+AP50_90 = np.nanmean(AP50_90)
+APlist_90 = np.nanmean(APlist_90, axis=0)
+mAP_ring_90 = np.nanmean(mAP_ring_90)
+AP50_ring_90 = np.nanmean(AP50_ring_90)
+APlist_ring_90 = np.nanmean(APlist_ring_90, axis=0)
+mAP_crack_90 = np.nanmean(mAP_crack_90)
+AP50_crack_90 = np.nanmean(AP50_crack_90)
+APlist_crack_90 = np.nanmean(APlist_crack_90, axis=0)
+mAP_resin_90 = np.nanmean(mAP_resin_90)
+AP50_resin_90 = np.nanmean(AP50_resin_90)
+APlist_resin_90 = np.nanmean(APlist_resin_90, axis=0)
+mAP_pith_90 = np.nanmean(mAP_pith_90)
+AP50_pith_90 = np.nanmean(AP50_pith_90)
+APlist_pith_90 = np.nanmean(APlist_pith_90, axis=0)
 
 ## TP_FP_FN_group
 TP_90 = np.array(np.sum(TP_90, axis=0))
@@ -892,22 +913,22 @@ IoU_resin_90 = np.mean(IoU_resin_90)
 IoU_pith_90 = np.mean(IoU_pith_90)
 
 # 45
-mAP_45 = np.mean(mAP_45)
+mAP_45 = np.nanmean(mAP_45)
 #print("mAP_45", mAP_45)
-AP50_45 = np.mean(AP50_45)
-APlist_45 = np.mean(APlist_45, axis=0)
-mAP_ring_45 = np.mean(mAP_ring_45)
-AP50_ring_45 = np.mean(AP50_ring_45)
-APlist_ring_45 = np.mean(APlist_ring_45, axis=0)
-mAP_crack_45 = np.mean(mAP_crack_45)
-AP50_crack_45 = np.mean(AP50_crack_45)
-APlist_crack_45 = np.mean(APlist_crack_45, axis=0)
-mAP_resin_45 = np.mean(mAP_resin_45)
-AP50_resin_45 = np.mean(AP50_resin_45)
-APlist_resin_45 = np.mean(APlist_resin_45, axis=0)
-mAP_pith_45 = np.mean(mAP_pith_45)
-AP50_pith_45 = np.mean(AP50_pith_45)
-APlist_pith_45 = np.mean(APlist_pith_45, axis=0)
+AP50_45 = np.nanmean(AP50_45)
+APlist_45 = np.nanmean(APlist_45, axis=0)
+mAP_ring_45 = np.nanmean(mAP_ring_45)
+AP50_ring_45 = np.nanmean(AP50_ring_45)
+APlist_ring_45 = np.nanmean(APlist_ring_45, axis=0)
+mAP_crack_45 = np.nanmean(mAP_crack_45)
+AP50_crack_45 = np.nanmean(AP50_crack_45)
+APlist_crack_45 = np.nanmean(APlist_crack_45, axis=0)
+mAP_resin_45 = np.nanmean(mAP_resin_45)
+AP50_resin_45 = np.nanmean(AP50_resin_45)
+APlist_resin_45 = np.nanmean(APlist_resin_45, axis=0)
+mAP_pith_45 = np.nanmean(mAP_pith_45)
+AP50_pith_45 = np.nanmean(AP50_pith_45)
+APlist_pith_45 = np.nanmean(APlist_pith_45, axis=0)
 
 ## TP_FP_FN_group
 TP_45 = np.array(np.sum(TP_45, axis=0))
