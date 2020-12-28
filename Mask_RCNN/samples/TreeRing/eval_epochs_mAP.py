@@ -121,7 +121,7 @@ AP_per_weight = []
 AP_per_weight_variance = []
 
 weight_list = os.listdir(args.weight_folder)
-short_weight_list = weight_list # I did this just to check for some subset of the weights. E.g. last 100
+short_weight_list = weight_list# I did this just to check for some subset of the weights. E.g. last 100
 for f in short_weight_list:
     if f.endswith('h5'):
         #print(f)
