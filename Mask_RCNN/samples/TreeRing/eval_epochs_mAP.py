@@ -9,7 +9,7 @@ cd /Users/miroslav.polacek/Dropbox\ \(VBC\)/Group\ Folder\ Swarts/Research/CNNRi
 run in command line:
 cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
 conda activate TreeRingCNN &&
-python3 eval_epochs_mAP.py --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering  --weight_folder=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcracks20201107T1734
+python3 eval_epochs_mAP.py --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini  --weight_folder=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220
 
 """
 #######################################################################
@@ -121,14 +121,14 @@ AP_per_weight = []
 AP_per_weight_variance = []
 
 weight_list = os.listdir(args.weight_folder)
-short_weight_list = weight_list# I did this just to check for some subset of the weights. E.g. last 100
+short_weight_list = weight_list[200:300]# I did this just to check for some subset of the weights. E.g. last 100
 for f in short_weight_list:
     if f.endswith('h5'):
         #print(f)
         weight_names.append(f)
         weights_path = os.path.join(args.weight_folder,f)
         # Load weights
-        print("Loading weights ", f)
+        print("Loading weights", f)
         model.load_weights(weights_path, by_name=True)
 
 	# Run validation
@@ -144,7 +144,9 @@ for f in short_weight_list:
 run_path = args.weight_folder
 run_ID = os.path.split(run_path)[1]
 model_eval_DIR = os.path.join(ROOT_DIR, 'samples/TreeRing/model_eval')
-run_eval_DIR = os.path.join(model_eval_DIR,run_ID)
+
+val_dataset_name = os.path.basename(args.dataset) # to create different folder for different validation set if the same weight run on multiple
+run_eval_DIR = os.path.join(model_eval_DIR,run_ID,val_dataset_name)
 
 if not os.path.exists(run_eval_DIR): #check if it already exists and if not make it
     os.makedirs(run_eval_DIR)

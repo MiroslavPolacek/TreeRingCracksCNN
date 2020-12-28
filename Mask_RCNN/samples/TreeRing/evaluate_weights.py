@@ -732,7 +732,7 @@ for image_id in image_ids:
     gt_mask_flat_binary = np.where(gt_mask_flat > 0, 1, 0)
     #print(gt_mask_flat_binary.shape)
     gt_mask_flat_binary = np.reshape(gt_mask_flat_binary, (1024,1024,1))
-    #print('gt_mask_shape:', gt_mask_flat_binary.shape)
+    print('gt_mask_shape:', gt_mask_flat_binary.shape)
     IoU_combined_mask.append(utils.compute_overlaps_masks(gt_mask_flat_binary, combined_mask_binary))
 
     #IoU_combined_mask = np.mean(IoU_combined_mask)
