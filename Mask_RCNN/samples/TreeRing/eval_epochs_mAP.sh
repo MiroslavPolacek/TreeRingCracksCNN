@@ -6,7 +6,7 @@
 #SBATCH --mem=32G
 #SBATCH --qos=medium
 #SBATCH --time=2-00:00:00
-#SBATCH --output=eval_epochs_mAP.stdout
+#SBATCH --output=eval_epochs_mAP_new_val.stdout
 
 ml load anaconda3/2019.03
 source activate ~/.conda/envs/TreeRingCNN
