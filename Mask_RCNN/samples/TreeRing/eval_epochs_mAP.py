@@ -11,6 +11,11 @@ cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &
 conda activate TreeRingCNN &&
 python3 eval_epochs_mAP.py --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini  --weight_folder=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220
 
+run command on my Mint
+conda activate TreeRingCNN &&
+cd /home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing
+python3 eval_epochs_mAP.py --dataset=/home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini  --weight_folder=/home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220
+
 """
 #######################################################################
 #Arguments
