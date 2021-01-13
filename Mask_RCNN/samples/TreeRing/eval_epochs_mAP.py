@@ -76,7 +76,7 @@ dataset.load_balloon(BALLOON_DIR, "val")
 
 # Must call before using the dataset
 dataset.prepare()
-
+print("Dataset prepared")
 # Create model in inference mode
 
 model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)

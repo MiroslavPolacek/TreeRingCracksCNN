@@ -3,9 +3,9 @@
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:RTX:1
 #SBATCH --partition=g
-#SBATCH --mem=32G
-#SBATCH --qos=medium
-#SBATCH --time=2-00:00:00
+#SBATCH --mem=112G
+#SBATCH --qos=long
+#SBATCH --time=4-00:00:00
 #SBATCH --output=eval_epochs_mAP_new_val.stdout
 
 ml load anaconda3/2019.03
