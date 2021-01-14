@@ -4,8 +4,8 @@
 #SBATCH --gres=gpu:RTX:1
 #SBATCH --partition=g
 #SBATCH --mem=112G
-#SBATCH --qos=long
-#SBATCH --time=8-00:00:00
+#SBATCH --qos=short
+#SBATCH --time=0-01:00:00
 #SBATCH --output=TrainCracksComb2_onlyRing.stdout
 
 ml load anaconda3/2019.03
