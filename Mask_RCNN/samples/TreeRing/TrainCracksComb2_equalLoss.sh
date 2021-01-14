@@ -11,4 +11,4 @@
 ml load anaconda3/2019.03
 source activate ~/.conda/envs/TreeRingCNN
 
-time ~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/TreeRingCracksComb2_equalLoss.py train --dataset=/groups/swarts/user/miroslav.polacek/CNN/treeringCombined  --weights=imagenet
+time ~/.conda/envs/TreeRingCNN/bin/python3 /groups/swarts/user/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/TreeRingCracksComb2_equalLoss.py train --dataset=/groups/swarts/user/miroslav.polacek/CNN/treeringCombined  --weights=imagenet
