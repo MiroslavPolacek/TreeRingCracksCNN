@@ -240,6 +240,11 @@ class BalloonDataset(utils.Dataset):
             #print("MY", my_height, my_width)
             #print("skimage", height, width)
 
+            # Subset only polygons with rings
+            polygons = polygons[class_ids==1]
+            class_ids = class_ids[class_ids==1]
+
+
             self.add_image(
                 "rings",
                 image_id=a['filename'],  # use file name as a unique image id
@@ -260,9 +265,7 @@ class BalloonDataset(utils.Dataset):
         if image_info["source"] != "rings":
             return super(self.__class__, self).load_mask(image_id)
 
-        # Subset only polygons with rings
-        polygons = polygons[class_ids==1]
-        class_ids = class_ids[class_ids==1]
+
         # Convert polygons to a bitmap mask of shape
         # [height, width, instance_count]
         info = self.image_info[image_id]
