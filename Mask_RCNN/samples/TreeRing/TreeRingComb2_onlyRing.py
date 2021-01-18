@@ -176,7 +176,7 @@ class BalloonDataset(utils.Dataset):
         """
         # Add classes.
         self.add_class("rings", 1, "ring")
-        self.add_class("rings", 2, "crack")
+        #self.add_class("rings", 2, "crack")
 
         # Train or validation dataset?
         assert subset in ["train", "val"]
