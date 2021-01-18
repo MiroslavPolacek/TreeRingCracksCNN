@@ -26,13 +26,6 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
     #Train on Tree Rings starting from ImageNet weights
     python3 TreeRing.py train --dataset=/Users/miroslav.polacek/Dropbox\ \(VBC\)/'Group Folder Swarts'/Research/CNNRings/Mask_RCNN/datasets/treering --weights=imagenet
 
-    ##next two should be eventually removed
-
-    # Apply color splash to an image
-    python3 TreeRing.py splash --weights=/path/to/weights/file.h5 --image=<URL or path to file>
-
-    # Apply color splash to video using the last weights you trained
-    python3 balloon.py splash --weights=last --video=<URL or path to file>
 """
 
 import os
@@ -212,10 +205,10 @@ class BalloonDataset(utils.Dataset):
             # shape_attributes (see json format above)
             # The if condition is needed to support VIA versions 1.x and 2.x.
             if type(a['regions']) is dict:
-                polygons = [r['shape_attributes'] for r in a['regions'].values()]
+                polygons = [r['shape_attributes'] for r in a['regions'].values() if r['region_attributes']['type'] == 'RingBndy']
                 class_ids_name = [r['region_attributes'] for r in a['regions'].values()]
             else:
-                polygons = [r['shape_attributes'] for r in a['regions']]
+                polygons = [r['shape_attributes'] for r in a['regions'] if r['region_attributes']['type'] == 'RingBndy']
                 class_ids_name = [r['region_attributes'] for r in a['regions']]
             # Change class IDs to integers
             class_ids = []
@@ -240,9 +233,6 @@ class BalloonDataset(utils.Dataset):
             #print("MY", my_height, my_width)
             #print("skimage", height, width)
 
-            # Subset only polygons with rings
-            polygons = polygons[class_ids==1]
-            class_ids = class_ids[class_ids==1]
 
 
             self.add_image(
