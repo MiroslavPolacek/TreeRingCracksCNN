@@ -215,10 +215,10 @@ class BalloonDataset(utils.Dataset):
             for i in range(len(class_ids_name)):
                 if class_ids_name[i]['type'] == 'RingBndy':
                     class_ids.append(1)
-                elif class_ids_name[i]['type'] == 'CrackPoly':
-                    class_ids.append(2)
-                else:
-                    print("Annotation is neither RingBndy nor CrackPoly")
+                #elif class_ids_name[i]['type'] == 'CrackPoly':
+                    #class_ids.append(2)
+                #else:
+                    #print("Annotation is neither RingBndy nor CrackPoly")
             # load_mask() needs the image size to convert polygons to masks.
             # Unfortunately, VIA doesn't include it in JSON, so we must read
             # the image. This is only managable since the dataset is tiny.
