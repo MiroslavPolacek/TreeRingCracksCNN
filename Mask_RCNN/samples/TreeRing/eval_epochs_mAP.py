@@ -11,6 +11,11 @@ cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &
 conda activate TreeRingCNN &&
 python3 eval_epochs_mAP.py --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini  --weight_folder=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220
 
+run command on my Mint
+conda activate TreeRingCNN &&
+cd /home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing
+python3 eval_epochs_mAP.py --dataset=/home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini  --weight_folder=/home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220
+
 """
 #######################################################################
 #Arguments
@@ -76,7 +81,7 @@ dataset.load_balloon(BALLOON_DIR, "val")
 
 # Must call before using the dataset
 dataset.prepare()
-
+print("Dataset prepared")
 # Create model in inference mode
 
 model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)

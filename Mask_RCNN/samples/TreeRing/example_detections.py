@@ -93,7 +93,11 @@ class_names = ['BG', 'ring', 'cracks']
 
 # i will comment this now to speed this up
 
+<<<<<<< HEAD
 Image_folder_path = '/Users/miroslav.polacek/Pictures/Rings_to_test/transformed_Rins_to-test'
+=======
+Image_folder_path = '/groups/swarts/user/miroslav.polacek/CNN/transformed_Rins_to-test'
+>>>>>>> 025e8149a7e9f15dc0b417bb36ed8269842556f4
 
 #get folder path and make folder
 run_path = args.weight
@@ -105,7 +109,9 @@ weight_name = run_split_1[1]
 run_ID = os.path.split(run_split_1[0])[1]
 #print('run_ID:', run_ID)
 
-model_eval_DIR = os.path.join(ROOT_DIR, 'samples/TreeRing/model_eval')
+
+#model_eval_DIR = os.path.join(ROOT_DIR, 'samples/TreeRing/model_eval')
+model_eval_DIR = '/groups/swarts/user/miroslav.polacek/CNN'
 #print(model_eval_DIR)
 run_eval_DIR = os.path.join(model_eval_DIR,run_ID)
 weight_eval_DIR = os.path.join(run_eval_DIR, weight_name)

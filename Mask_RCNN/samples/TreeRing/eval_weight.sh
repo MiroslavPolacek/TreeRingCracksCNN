@@ -13,4 +13,4 @@ source activate ~/.conda/envs/TreeRingCNN
 
 
 
-time ~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/evaluate_weights.py --dataset=/groups/swarts/user/miroslav.polacek/CNN/val_new  --weight=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackstrans220201201T1850/mask_rcnn_treeringcrackstrans2_0040.h5
+time ~/.conda/envs/TreeRingCNN/bin/python3 /users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/evaluate_weights.py --dataset=/groups/swarts/user/miroslav.polacek/CNN/val_new  --weight=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
