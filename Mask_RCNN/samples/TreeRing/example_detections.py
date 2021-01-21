@@ -6,7 +6,7 @@ Usage:
 THIS TO TEST RUNS
 conda activate TreeRingCNNtest &&
 cd ~/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
-python3 example_detections.py --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
+python3 example_detections.py --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0284.h5
 
 """
 #######################################################################
@@ -93,7 +93,7 @@ class_names = ['BG', 'ring', 'cracks']
 
 # i will comment this now to speed this up
 
-Image_folder_path = '/Users/miroslav.polacek/Pictures/mini_example'
+Image_folder_path = '/Users/miroslav.polacek/Pictures/Rings_to_test/transformed_Rins_to-test'
 
 #get folder path and make folder
 run_path = args.weight
