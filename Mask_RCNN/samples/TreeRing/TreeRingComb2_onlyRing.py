@@ -337,7 +337,7 @@ def train(model):
     print("Train all lower learning rate")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE/10,
-                epochs=300,
+                epochs=400,
                 augmentation=augmentation,
                 layers='all') # 'heads' or 'all'
 
