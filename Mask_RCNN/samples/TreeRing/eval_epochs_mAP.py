@@ -126,7 +126,7 @@ AP_per_weight = []
 AP_per_weight_variance = []
 
 weight_list = os.listdir(args.weight_folder)
-short_weight_list = weight_list[:10]# I did this just to check for some subset of the weights. E.g. last 100
+short_weight_list = weight_list[:3]# I did this just to check for some subset of the weights. E.g. last 100
 for f in short_weight_list:
     if f.endswith('h5'):
         #print(f)
@@ -157,7 +157,7 @@ if not os.path.exists(run_eval_DIR): #check if it already exists and if not make
     os.makedirs(run_eval_DIR)
 
 #save table
-idf = pd.DataFrame()
+df = pd.DataFrame()
 df['weights'] = weight_names
 df['mAP'] = AP_per_weight
 df['mAP_var'] = AP_per_weight_variance
