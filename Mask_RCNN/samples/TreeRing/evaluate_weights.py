@@ -38,7 +38,6 @@ args = parser.parse_args()
 
 import os
 import sys
-#import re
 import skimage
 import cv2
 import pandas as pd
