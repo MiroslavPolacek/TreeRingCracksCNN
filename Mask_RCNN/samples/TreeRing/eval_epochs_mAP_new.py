@@ -19,9 +19,7 @@ python3 eval_epochs_mAP_new.py --dataset=/home/miroslavp/Github/TreeRingCracksCN
 run command on my Mint on new_val
 conda activate TreeRingCNN &&
 cd /home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing
-python3 eval_epochs_mAP_new.py --dataset=/media/miroslavp/MiroAllLife/TreeRingDatasetsBackUp/treering_new --weight_folder=/home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220
-
-
+time python3 eval_epochs_mAP_new.py --dataset=/media/miroslavp/MiroAllLife/TreeRingDatasetsBackUp/treering_new --weight_folder=/home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220
 """
 #######################################################################
 #Arguments
@@ -104,7 +102,7 @@ def compute_batch_ap(dataset, image_ids, verbose=1):
         # Load image ground truths
         image, image_meta, gt_class_id, gt_bbox, gt_mask =\
             modellib.load_image_gt(dataset, config, image_id, use_mini_mask=False)
-
+        print(image_id)
         # Run object detection
         results = model.detect([image], verbose=0)
         # Compute AP over range 0.5 to 0.95

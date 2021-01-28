@@ -265,9 +265,22 @@ class BalloonDataset(utils.Dataset):
         info = self.image_info[image_id]
         mask = np.zeros([info["height"], info["width"], len(info["polygons"])],
                         dtype=np.uint8)
+                        
         for i, p in enumerate(info["polygons"]):
+            # check if there are bigger values than image dimensions and correct
+            corrected_all_points_x = []
+            corrected_all_points_y = []
+            for y in range(len(p['all_points_y'])):
+                if p['all_points_y'][y] >= info["height"]:
+                    corrected_all_points_y.append(info["height"]-1)
+                else:
+                    corrected_all_points_y.append(p['all_points_y'][y])
+                if p['all_points_x'][y] >= info["width"]:
+                    corrected_all_points_x.append(info["width"]-1)
+                else:
+                    corrected_all_points_x.append(p['all_points_x'][y])
             # Get indexes of pixels inside the polygon and set them to 1
-            rr, cc = skimage.draw.polygon(p['all_points_y'], p['all_points_x'])
+            rr, cc = skimage.draw.polygon(corrected_all_points_y, corrected_all_points_x)
             mask[rr, cc, i] = 1
 
         # Return mask, and array of class IDs of each instance. Since we have
