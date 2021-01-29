@@ -157,11 +157,11 @@ def append_row_to_csv(csv_file_path, mAP_to_save):
 #######################################################################
 #get folder path and make folder
 run_path = args.weight_folder
-run_ID = os.path.split(run_path)[1]
-model_eval_DIR = os.path.join(ROOT_DIR, 'samples/TreeRing/model_eval')
+run_ID = os.path.basename(run_path)
+model_eval_DIR = os.path.join(ROOT_DIR, 'samples/TreeRing/model_eval/parallel')
 
 val_dataset_name = os.path.basename(args.dataset) # to create different folder for different validation set if the same weight run on multiple
-run_eval_DIR = os.path.join(model_eval_DIR,run_ID,val_dataset_name)
+run_eval_DIR = os.path.join(model_eval_DIR, run_ID, val_dataset_name)
 
 if not os.path.exists(run_eval_DIR): #check if it already exists and if not make it
     os.makedirs(run_eval_DIR)
