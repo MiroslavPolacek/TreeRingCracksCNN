@@ -4,11 +4,11 @@
 #SBATCH --gres=gpu:RTX:1
 #SBATCH --partition=g
 #SBATCH --mem=112G
-#SBATCH --qos=long
-#SBATCH --time=4-00:00:00
+#SBATCH --qos=medium
+#SBATCH --time=2-00:00:00
 #SBATCH --output=eval_epochs_mAP_new_val.stdout
 
 ml load anaconda3/2019.03
 source activate ~/.conda/envs/TreeRingCNN
 
-time ~/.conda/envs/TreeRingCNN/bin/python3 /groups/swarts/user/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/eval_epochs_mAP.py --dataset=/groups/swarts/user/miroslav.polacek/CNN/val_new  --weight_folder=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/
+time ~/.conda/envs/TreeRingCNN/bin/python3 /groups/swarts/user/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/eval_epochs_mAP_new.py --dataset=/groups/swarts/user/miroslav.polacek/CNN/val_new  --weight_folder=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/
