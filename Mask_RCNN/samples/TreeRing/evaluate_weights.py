@@ -58,6 +58,9 @@ import mrcnn.model as modellib
 from mrcnn.model import log
 
 from samples.TreeRing import TreeRing
+# print GPU
+from tensorflow.python.client import device_lib
+print("LOCAL DIVICES", device_lib.list_local_devices())
 
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 
