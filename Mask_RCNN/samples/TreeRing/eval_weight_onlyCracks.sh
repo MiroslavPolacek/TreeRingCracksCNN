@@ -6,9 +6,9 @@
 #SBATCH --mem=32G
 #SBATCH --qos=short
 #SBATCH --time=0-05:00:00
-#SBATCH --output=eval_weight.stdout
+#SBATCH --output=eval_weight_cracks.stdout
 
 ml load anaconda3/2019.03
 source activate ~/.conda/envs/TreeRingCNN
 
-time ~/.conda/envs/TreeRingCNN/bin/python3 /groups/swarts/user/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/evaluate_weights_onlyCracks.py --dataset=/groups/swarts/user/miroslav.polacek/CNN/val_new  --weight=/users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb2_onlycracks20210121T2224/mask_rcnn_treeringcrackscomb2_onlycracks_0512.h5
+time ~/.conda/envs/TreeRingCNN/bin/python3 /groups/swarts/user/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/evaluate_weights_onlyCracks.py --dataset=/groups/swarts/user/miroslav.polacek/CNN/val_new  --weight=/groups/swarts/user/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb2_onlycracks20210121T2224/mask_rcnn_treeringcrackscomb2_onlycracks_0512.h5
