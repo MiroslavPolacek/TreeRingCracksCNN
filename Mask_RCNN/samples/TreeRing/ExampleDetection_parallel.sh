@@ -7,7 +7,7 @@
 #SBATCH --mem=16G
 #SBATCH --qos=short
 #SBATCH --time=0-08:00:00
-#SBATCH --output=ExampleDetections_%a.stdout
+#SBATCH --output=ExampleDetections_parallel_%a.stdout
 
 ml load anaconda3/2019.03
 source activate ~/.conda/envs/TreeRingCNN
