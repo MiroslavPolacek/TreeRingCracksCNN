@@ -58,8 +58,8 @@ from mrcnn import utils
 from mrcnn import visualize_print
 import mrcnn.model as modellib
 from mrcnn.model import log
-
-from samples.TreeRing import args.TreeRingConf as TreeRing # this allows to parralelise over several config values at the sam time
+TreeRingConfName = args.TreeRingConf
+from samples.TreeRing import TreeRingConfName as TreeRing # this allows to parralelise over several config values at the sam time
 # print GPU
 from tensorflow.python.client import device_lib
 print("LOCAL DIVICES", device_lib.list_local_devices())
