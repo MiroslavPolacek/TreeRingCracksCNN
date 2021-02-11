@@ -61,7 +61,7 @@ class BalloonConfig(Config):
     Derives from the base Config class and overrides some values.
     """
     # Give the configuration a recognizable name
-    NAME = "TreeRingCracksComb2_OnlyCracks"
+    NAME = "TreeRingCracksComb2_OnlyRing"
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU. V100 should have 32gb memory, seems can manage 6 images 1024x1024
@@ -71,7 +71,7 @@ class BalloonConfig(Config):
     NUM_CLASSES = 1 + 1  # Background + ring + crack
 
     # Number of training steps per epoch rule of thumb taining images/images per GPU
-    STEPS_PER_EPOCH = 103
+    STEPS_PER_EPOCH = 650
 
     # Number of validation steps per epoch
     VALIDATION_STEPS = 1
@@ -131,7 +131,7 @@ class BalloonConfig(Config):
 
     # Skip detections with < 90% confidence 0.9 was for baloons
     # for nucleus 0
-    DETECTION_MIN_CONFIDENCE = 1.0
+    DETECTION_MIN_CONFIDENCE = 0.95
 
     # Learning rate and momentum
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
@@ -168,7 +168,7 @@ class BalloonDataset(utils.Dataset):
         subset: Subset to load: train or val
         """
         # Add classes.
-        self.add_class("rings", 1, "crack")
+        self.add_class("rings", 1, "ring")
         #self.add_class("rings", 2, "crack")
 
         # Train or validation dataset?
@@ -205,15 +205,15 @@ class BalloonDataset(utils.Dataset):
             # shape_attributes (see json format above)
             # The if condition is needed to support VIA versions 1.x and 2.x.
             if type(a['regions']) is dict:
-                polygons = [r['shape_attributes'] for r in a['regions'].values() if r['region_attributes']['type'] == 'CrackPoly']
+                polygons = [r['shape_attributes'] for r in a['regions'].values() if r['region_attributes']['type'] == 'RingBndy']
                 class_ids_name = [r['region_attributes'] for r in a['regions'].values()]
             else:
-                polygons = [r['shape_attributes'] for r in a['regions'] if r['region_attributes']['type'] == 'CrackPoly']
+                polygons = [r['shape_attributes'] for r in a['regions'] if r['region_attributes']['type'] == 'RingBndy']
                 class_ids_name = [r['region_attributes'] for r in a['regions']]
             # Change class IDs to integers
             class_ids = []
             for i in range(len(class_ids_name)):
-                if class_ids_name[i]['type'] == 'CrackPoly':
+                if class_ids_name[i]['type'] == 'RingBndy':
                     class_ids.append(1)
                 #elif class_ids_name[i]['type'] == 'CrackPoly':
                     #class_ids.append(2)
@@ -222,28 +222,26 @@ class BalloonDataset(utils.Dataset):
             # load_mask() needs the image size to convert polygons to masks.
             # Unfortunately, VIA doesn't include it in JSON, so we must read
             # the image. This is only managable since the dataset is tiny.
-            if not polygons:
-                continue
-            else:
-                image_path = os.path.join(dataset_dir, a['filename'])
 
-                width = a['size'].split('x')[0]
-                height = a['size'].split('x')[1]
-                #print(image_path) #this was only for inspecting tiff loading problems
-                #image = skimage.io.imread(image_path)
-                #height, width = image.shape[:2]
-                #print("MY", my_height, my_width)
-                #print("skimage", height, width)
+            image_path = os.path.join(dataset_dir, a['filename'])
+
+            width = a['size'].split('x')[0]
+            height = a['size'].split('x')[1]
+            #print(image_path) #this was only for inspecting tiff loading problems
+            #image = skimage.io.imread(image_path)
+            #height, width = image.shape[:2]
+            #print("MY", my_height, my_width)
+            #print("skimage", height, width)
 
 
 
-                self.add_image(
-                    "rings",
-                    image_id=a['filename'],  # use file name as a unique image id
-                    path=image_path,
-                    width=int(width), height=int(height),
-                    polygons=polygons,
-                    class_ids=class_ids)
+            self.add_image(
+                "rings",
+                image_id=a['filename'],  # use file name as a unique image id
+                path=image_path,
+                width=int(width), height=int(height),
+                polygons=polygons,
+                class_ids=class_ids)
 
     def load_mask(self, image_id):
         """Generate instance masks for an image.
@@ -339,7 +337,7 @@ def train(model):
     print("Train all lower learning rate")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE/10,
-                epochs=600,
+                epochs=400,
                 augmentation=augmentation,
                 layers='all') # 'heads' or 'all'
 
