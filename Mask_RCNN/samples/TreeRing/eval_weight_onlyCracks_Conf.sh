@@ -7,7 +7,7 @@
 #SBATCH --mem=16G
 #SBATCH --qos=short
 #SBATCH --time=0-05:00:00
-#SBATCH --output=eval_weight_%a.stdout
+#SBATCH --output=eval_weight_cracksconf_%a.stdout
 
 ml load anaconda3/2019.03
 source activate ~/.conda/envs/TreeRingCNN
