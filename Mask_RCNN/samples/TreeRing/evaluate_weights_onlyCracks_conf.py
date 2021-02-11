@@ -61,7 +61,7 @@ from mrcnn.model import log
 # to allow for looping over multiple files via args
 TreeRingConfName = args.TreeRingConf
 #from samples.TreeRing import TreeRingConfName as TreeRing # this allows to parralelise over several config values at the sam time
-TreeRing = __import__(TreeRingConfName[0], fromlist=[''])
+TreeRing = __import__(TreeRingConfName, fromlist=[''])
 # print GPU
 from tensorflow.python.client import device_lib
 print("LOCAL DIVICES", device_lib.list_local_devices())
