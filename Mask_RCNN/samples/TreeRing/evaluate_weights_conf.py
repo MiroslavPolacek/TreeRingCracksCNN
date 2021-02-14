@@ -8,10 +8,10 @@ conda activate TreeRingCNNtest &&
 cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
 python3 evaluate_weights.py  --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini/  --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
 
-THIS TO TEST Manjaro
-conda activate TreeRingCNN &&
-cd /home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
-python3 evaluate_weights_onlyCracks.py  --dataset=/home/miroslavp/Github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini/  --weight=
+THIS TO TEST RUNS
+conda activate TreeRingCNNtest &&
+cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
+python3 evaluate_weights.py  --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering/  --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
 
 """
 #######################################################################
@@ -22,6 +22,8 @@ import argparse
     # Parse command line arguments
 parser = argparse.ArgumentParser(
         description='Calculate mAP for all epochs')
+
+parser.add_argument('--TreeRingConf', required=True)
 
 parser.add_argument('--dataset', required=True,
                     metavar="/path/to/ring/dataset/",
@@ -56,8 +58,10 @@ from mrcnn import utils
 from mrcnn import visualize_print
 import mrcnn.model as modellib
 from mrcnn.model import log
-
-from samples.TreeRing import TreeRingComb2_onlyCracks as TreeRing
+# to allow for looping over multiple files via args
+TreeRingConfName = args.TreeRingConf
+#from samples.TreeRing import TreeRingConfName as TreeRing # this allows to parralelise over several config values at the sam time
+TreeRing = __import__(TreeRingConfName, fromlist=[''])
 # print GPU
 from tensorflow.python.client import device_lib
 print("LOCAL DIVICES", device_lib.list_local_devices())
@@ -108,7 +112,7 @@ def TP_FP_FN_per_score_mask(gt_mask, pred_mask, scores, IoU_treshold):
     TPs = []
     FPs = []
     FNs = []
-
+    #print("GT_MASK_SHAPE", gt_mask.shape)
     for SR in score_range:
         #print(SR)
         score_ids = np.where(scores > SR)[0] #Ids for predictions above certain score threshold
@@ -124,15 +128,15 @@ def TP_FP_FN_per_score_mask(gt_mask, pred_mask, scores, IoU_treshold):
         #print (mask_matrix_binary)
 
         #GT rings and predicted rigs
-        #print(mask_matrix.shape)
+        #print("MASK MATRIX SHAPE", mask_matrix.shape)
+
         if mask_matrix.shape[0]==0:
             TPs.append(0)
-            FPs.append(0)
+            FPs.append(mask_SR.shape[-1]) # All predicted are false in this case
             FNs.append(0)
         else:
             gt_r = len(mask_matrix)
             pred_r = len(mask_matrix[0])
-
             #TP
             sum_truth = np.sum(mask_matrix_binary, axis=1)
             sum_truth_binary = np.where(sum_truth > 0, 1, 0)
@@ -148,7 +152,10 @@ def TP_FP_FN_per_score_mask(gt_mask, pred_mask, scores, IoU_treshold):
             #FN
             FN = gt_r - TP
             FNs.append(FN)
-        #print('FN:', FN)
+
+        #print('TPs:', TPs)
+        #print('FPs:', FPs)
+        #print('FNs:', FNs)
     #put together and sum up TP...per range
 
     return TPs, FPs, FNs, score_range
@@ -282,7 +289,15 @@ def TP_FP_FN_group(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, 
     TP_FP_FN_names = ["score_range", "TP", "FP", "FN","TP_ring", "FP_ring", "FN_ring","TP_crack", "FP_crack", "FN_crack","TP_resin", "FP_resin", "FN_resin", "TP_pith", "FP_pith", "FN_pith"]
     # if no mask is detected
     if pred_mask.shape[-1] == 0:
-         TP_FP_FN_general = [[0]*10]*16
+        score_range = np.arange(0.5, 1.0, 0.05)
+        FN = [gt_mask.shape[-1]]*10 # FN here is sum of all the ground truth masks
+        TP_FP_FN_general = [score_range, [0]*10, [0]*10, FN]
+        for i in range(1,5):
+            TP = [0]*10
+            FP = [0]*10
+            FN = [gt_mask[:,:,gt_class_id==i].shape[-1]]*10
+            TP_FP_FN_general.extend([TP, FP, FN])
+
     else:
         # for all classes
         TP, FP, FN, score_range = TP_FP_FN_per_score_mask(gt_mask, pred_mask, pred_scores, IoU_treshold=IoU_treshold)
@@ -292,6 +307,7 @@ def TP_FP_FN_group(gt_mask, gt_class_id, pred_mask, pred_class_id, pred_scores, 
             TP_FP_FN_general.extend([TP, FP, FN])
 
     return TP_FP_FN_general, TP_FP_FN_names
+
 
 ###########################################################################
 # Calculate IoU general and per class.
@@ -1011,7 +1027,7 @@ training_ID = os.path.split(weight_path_split_1[0])[1]
 model_eval_DIR = os.path.join(ROOT_DIR, 'samples/TreeRing/model_eval')
 #print(model_eval_DIR)
 training_eval_DIR = os.path.join(model_eval_DIR,training_ID)
-weight_eval_DIR = os.path.join(training_eval_DIR, weight_name)
+weight_eval_DIR = os.path.join(training_eval_DIR, weight_name, args.TreeRingConf)
 
 if not os.path.exists(training_eval_DIR): #check if it already exists and if not make it
     os.makedirs(training_eval_DIR)

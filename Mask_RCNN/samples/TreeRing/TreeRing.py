@@ -138,7 +138,7 @@ class BalloonConfig(Config):
 
     # Skip detections with < 90% confidence 0.9 was for baloons
     # for nucleus 0
-    DETECTION_MIN_CONFIDENCE = 0.50
+    DETECTION_MIN_CONFIDENCE = 0.5
 
     # Learning rate and momentum
     # The Mask RCNN paper uses lr=0.02, but on TensorFlow it causes
@@ -265,7 +265,7 @@ class BalloonDataset(utils.Dataset):
         info = self.image_info[image_id]
         mask = np.zeros([info["height"], info["width"], len(info["polygons"])],
                         dtype=np.uint8)
-                        
+
         for i, p in enumerate(info["polygons"]):
             # check if there are bigger values than image dimensions and correct
             corrected_all_points_x = []
