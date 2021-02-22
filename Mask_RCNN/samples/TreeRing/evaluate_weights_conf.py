@@ -742,7 +742,7 @@ for image_id in image_ids:
     for m in range(0,nmasks):
         gt_mask_flat = gt_mask_flat + gt_mask[:,:,m]
     #calcumate IoU
-    combined_mask_binary = np.where(combined_mask > 0, 1, 0)
+    combined_mask_binary = np.where(combined_mask > 2, 1, 0) # Here You can change how many of masks should overlap ad minimum to be considered in combined mask
     #print("combined_mask_binary",combined_mask_binary.shape)
     combined_mask_binary = np.reshape(combined_mask_binary, (1024,1024,1))
 
