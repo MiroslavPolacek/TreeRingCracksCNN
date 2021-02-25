@@ -1,6 +1,7 @@
 logs
 datasets
 model_eval
+model_eval_detections
 *.ipynb
 **.pyc
 **.stdout
