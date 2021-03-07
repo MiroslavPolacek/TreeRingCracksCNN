@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:RTX:1
 #SBATCH --partition=g
-#SBATCH --mem=64G
+#SBATCH --mem=112G
 #SBATCH --qos=long
 #SBATCH --time=14-00:00:00
 #SBATCH --output=TrainCracksComb3.stdout
