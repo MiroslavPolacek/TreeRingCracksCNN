@@ -188,11 +188,8 @@ def compute_ap_range_list(gt_box, gt_class_id, gt_mask,
 ##########################################################################
 def modify_flat_mask(mask):
     #### identify polygons with opencv
-    binary_mask = np.where(mask >= 1, 255, 0) # this part can be cleaned to remove some missdetections setting condition for >2
-    #plt.imshow(binary_mask)
-    #plt.show()
 
-    uint8binary = binary_mask.astype(np.uint8).copy()
+    uint8binary = mask.astype(np.uint8).copy()
 
     #gray_image = cv2.cvtColor(binary_mask, cv2.COLOR_BGR2GRAY)
     # Older version of openCV has slightly different syntax i adjusted for it here
@@ -742,7 +739,7 @@ for image_id in image_ids:
     for m in range(0,nmasks):
         gt_mask_flat = gt_mask_flat + gt_mask[:,:,m]
     #calcumate IoU
-    combined_mask_binary = np.where(combined_mask >=0 , 1, 0) # Here You can change how many of masks should overlap ad minimum to be considered in combined mask
+    combined_mask_binary = np.where(combined_mask >2 , 1, 0) # Here You can change how many of masks should overlap ad minimum to be considered in combined mask
     #print("combined_mask_binary",combined_mask_binary.shape)
     combined_mask_binary = np.reshape(combined_mask_binary, (1024,1024,1))
 
@@ -757,8 +754,8 @@ for image_id in image_ids:
     #print('IoU_combined:', IoU_combined_mask)
 
 ####### Try to separate combined masks into layers
-    separated_mask = modify_flat_mask(combined_mask)
-    #print('separated_mask_shape', separated_mask.shape)
+    separated_mask = modify_flat_mask(combined_mask_binary)
+    print('separated_mask_shape', separated_mask.shape)
 
     #print(IoU_m)
     #plt.imshow(gt_mask[:,:,3])
