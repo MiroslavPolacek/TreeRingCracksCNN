@@ -68,7 +68,7 @@ class BalloonConfig(Config):
     IMAGES_PER_GPU = 4
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 1  # Background + ring + crack
+    NUM_CLASSES = 1 + 1  # Background + ring
 
     # Number of training steps per epoch rule of thumb taining images/images per GPU
     STEPS_PER_EPOCH = 650
