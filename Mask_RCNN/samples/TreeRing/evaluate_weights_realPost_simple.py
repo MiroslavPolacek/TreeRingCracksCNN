@@ -429,9 +429,9 @@ IoU_45 = []
 
 #COMBINED MASK
 IoU_combined = []
-TPs_combined = []
-FPs_combined = []
-FNs_combined = []
+TP_combined = []
+FP_combined = []
+FN_combined = []
 
 ## thresholds
 iou_thresholds = np.arange(0, 1.0, 0.05)
@@ -583,9 +583,9 @@ for image_id in image_ids:
         IoU_T.extend(i)
 
     IoU_combined.append(IoU_T)
-    TPs_combined.append(TP_T)
-    FPs_combined.append(FP_T)
-    FNs_combined.append(FN_T)
+    TP_combined.append(TP_T)
+    FP_combined.append(FP_T)
+    FN_combined.append(FN_T)
 
     print("TP_temp", TP_temp)
     print("IoU_temp", IoU_temp)
@@ -641,9 +641,9 @@ IoU_45mean = np.nanmean(IoU_45, axis=0)
 
 #COMBINED MASK
 IoU_combined_mean = np.nanmean(IoU_combined, axis=0)
-TPs_combined_sum = np.array(np.sum(TP_combined, axis=0))
-FPs_combined_sum = np.array(np.sum(TP_combined, axis=0))
-FNs_combined_sum = np.array(np.sum(TP_combined, axis=0))
+TP_combined_sum = np.array(np.sum(TP_combined, axis=0))
+FP_combined_sum = np.array(np.sum(FP_combined, axis=0))
+FN_combined_sum = np.array(np.sum(FN_combined, axis=0))
 
 # THIS FOR EVERY GROUP
 ### calculate sensitivity and precission
@@ -665,7 +665,7 @@ weight_name = weight_path_split_1[1]
 training_ID = os.path.split(weight_path_split_1[0])[1]
 #print('run_ID:', run_ID)
 
-model_eval_DIR = os.path.join(ROOT_DIR, 'samples/TreeRing/model_eval')
+model_eval_DIR = args.path_out
 #print(model_eval_DIR)
 training_eval_DIR = os.path.join(model_eval_DIR,training_ID)
 weight_eval_DIR = os.path.join(training_eval_DIR, weight_name, args.TreeRingConf)
@@ -686,15 +686,60 @@ FPsumdf.to_csv(os.path.join(weight_eval_DIR, 'FP_perScore_IoU{}.csv'.format(weig
 
 FNsumdf = pd.DataFrame(FNsum, columns = str(iou_thresholds))
 FNsumdf.to_csv(os.path.join(weight_eval_DIR, 'FN_perScore_IoU{}.csv'.format(weight_name)))
-# 45
 
+sendf = pd.DataFrame(sen, columns = str(iou_thresholds))
+sendf.to_csv(os.path.join(weight_eval_DIR, 'sen_perScore_IoU{}.csv'.format(weight_name)))
+
+precdf = pd.DataFrame(prec, columns = str(iou_thresholds))
+precdf.to_csv(os.path.join(weight_eval_DIR, 'prec_perScore_IoU{}.csv'.format(weight_name)))
+
+# 45
+TP_45sumdf = pd.DataFrame(TP_45sum, columns = str(iou_thresholds))
+TP_45sumdf.to_csv(os.path.join(weight_eval_DIR, 'TP_45_perScore_IoU{}.csv'.format(weight_name)))
+
+FP_45sumdf = pd.DataFrame(FP_45sum, columns = str(iou_thresholds))
+FP_45sumdf.to_csv(os.path.join(weight_eval_DIR, 'FP_45_perScore_IoU{}.csv'.format(weight_name)))
+
+FN_45sumdf = pd.DataFrame(FN_45sum, columns = str(iou_thresholds))
+FN_45sumdf.to_csv(os.path.join(weight_eval_DIR, 'FN_45_perScore_IoU{}.csv'.format(weight_name)))
+
+sen_45df = pd.DataFrame(sen_45, columns = str(iou_thresholds))
+sen_45df.to_csv(os.path.join(weight_eval_DIR, 'sen_45_perScore_IoU{}.csv'.format(weight_name)))
+
+prec_45df = pd.DataFrame(prec_45, columns = str(iou_thresholds))
+prec_45df.to_csv(os.path.join(weight_eval_DIR, 'prec_45_perScore_IoU{}.csv'.format(weight_name)))
 
 # 90
+TP_90sumdf = pd.DataFrame(TP_90sum, columns = str(iou_thresholds))
+TP_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'TP_90_perScore_IoU{}.csv'.format(weight_name)))
 
+FP_90sumdf = pd.DataFrame(FP_90sum, columns = str(iou_thresholds))
+FP_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'FP_90_perScore_IoU{}.csv'.format(weight_name)))
 
+FN_90sumdf = pd.DataFrame(FN_90sum, columns = str(iou_thresholds))
+FN_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'FN_90_perScore_IoU{}.csv'.format(weight_name)))
 
+sen_90df = pd.DataFrame(sen_90, columns = str(iou_thresholds))
+sen_90df.to_csv(os.path.join(weight_eval_DIR, 'sen_90_perScore_IoU{}.csv'.format(weight_name)))
 
+prec_90df = pd.DataFrame(prec_90, columns = str(iou_thresholds))
+prec_90df.to_csv(os.path.join(weight_eval_DIR, 'prec_90_perScore_IoU{}.csv'.format(weight_name)))
 
+# combined
+TP_90sumdf = pd.DataFrame(TP_90sum, columns = str(iou_thresholds))
+TP_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'TP_90_perScore_IoU{}.csv'.format(weight_name)))
+
+FP_90sumdf = pd.DataFrame(FP_90sum, columns = str(iou_thresholds))
+FP_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'FP_90_perScore_IoU{}.csv'.format(weight_name)))
+
+FN_90sumdf = pd.DataFrame(FN_90sum, columns = str(iou_thresholds))
+FN_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'FN_90_perScore_IoU{}.csv'.format(weight_name)))
+
+sen_90df = pd.DataFrame(sen_90, columns = str(iou_thresholds))
+sen_90df.to_csv(os.path.join(weight_eval_DIR, 'sen_90_perScore_IoU{}.csv'.format(weight_name)))
+
+prec_90df = pd.DataFrame(prec_90, columns = str(iou_thresholds))
+prec_90df.to_csv(os.path.join(weight_eval_DIR, 'prec_90_perScore_IoU{}.csv'.format(weight_name)))
 #save table
 df = pd.DataFrame()
 
