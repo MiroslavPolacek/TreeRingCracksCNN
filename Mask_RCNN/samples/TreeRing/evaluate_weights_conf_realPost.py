@@ -1,18 +1,10 @@
 """
-Calculate a lits of mAP at IoU > 0.5 and for every epoch in the folder
---------------------------
-Usage:
+Complex evaluation of weights.
 
-THIS TO TEST RUNS
-conda activate TreeRingCNNtest &&
-cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
-python3 evaluate_weights.py  --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering_mini/  --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
-
-THIS TO TEST RUNS
-conda activate TreeRingCNNtest &&
-cd /Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
-python3 evaluate_weights.py  --dataset=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/datasets/treering/  --weight=/Users/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb20201119T2220/mask_rcnn_treeringcrackscomb_0222.h5
-
+# Test on laptop
+cd ~/Github/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing &&
+conda activate TreeRingCNN &&
+bash eval_weight_realPost_laptopDebug.sh
 """
 #######################################################################
 #Arguments
@@ -31,6 +23,8 @@ parser.add_argument('--dataset', required=True,
 parser.add_argument('--weight', required=True,
                     metavar="/path/to/weight/folder",
                     help="Path to weight file")
+parser.add_argument('--path_out', required=True,
+                    help="Path to save output")
 
 args = parser.parse_args()
 
@@ -48,7 +42,7 @@ import tensorflow as tf
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from postprocessingCracksRings import sliding_window_detection, clean_up_mask
+from postprocessingCracksRings import sliding_window_detection, clean_up_mask, apply_mask, plot_lines
 
 # Root directory of the project
 ROOT_DIR = os.path.abspath("../../")
@@ -96,8 +90,10 @@ weights_path = args.weight
 print("Loading weights")
 model.load_weights(weights_path, by_name=True)
 image_ids = dataset.image_ids
-# Get all class ids from the dataset
-
+# Set some paths
+IMAGE_PATH_OUT = os.path.join(args.path_out, args.TreeRingConf)
+if not os.path.exists(IMAGE_PATH_OUT): #check if it already exists and if not make it
+    os.makedirs(IMAGE_PATH_OUT)
 #################################################################################
 # Precision and recall for mask, first value of TP...should be for score of 0.5
 #################################################################################
@@ -189,10 +185,8 @@ def compute_ap_range_list(gt_box, gt_class_id, gt_mask,
 ##########################################################################
 def modify_flat_mask(mask):
     #### identify polygons with opencv
-
     uint8binary = mask.astype(np.uint8).copy()
 
-    #gray_image = cv2.cvtColor(binary_mask, cv2.COLOR_BGR2GRAY)
     # Older version of openCV has slightly different syntax i adjusted for it here
     if int(cv2.__version__.split(".")[0]) < 4:
         _, contours, _ = cv2.findContours(uint8binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
@@ -240,6 +234,28 @@ def modify_flat_mask(mask):
 
 
     return result_mask
+##########################################################################
+# Turn contours in binary mask
+##########################################################################
+def contours_to_binary(clean_contours,imheight,imwidth, debug=False):
+    mask = np.zeros([imheight,imwidth, len(clean_contours)],
+                    dtype=np.uint8)
+    for i in range(len(clean_contours)):
+        # separate x and y coords for contour
+        x_list = []
+        y_list = []
+        for p in range(len(clean_contours[i])):
+            [[x,y]] = clean_contours[i][p]
+            x_list.append(x)
+            y_list.append(y)
+        mask = np.zeros([imheight,imwidth, len(clean_contours)],
+                        dtype=np.uint8)
+        r, c = skimage.draw.polygon(y_list, x_list)
+        mask[r, c, i] = 1
+    if debug==True:
+        plt.imshow(mask[:,:,0])
+        plt.show()
+    return mask
 
 ###########################################################################
 # Calculate AP gorup of indexes. General and per class.
@@ -468,7 +484,6 @@ for image_id in image_ids:
         modellib.load_image_gt(dataset, config,
                                image_id, use_mini_mask=False)
     print('EVALUATING IMAGE:', image_id)
-    #print('image shape:', image.shape)
     imgheight = image.shape[0]
 
 ###### Detect image in normal orientation
@@ -689,90 +704,53 @@ for image_id in image_ids:
     #print("IoU_crack_45", IoU_crack_45)
     #print("IoU_resin_45", IoU_resin_45)
 
-
-
-###### COMBINE ALL THE MASKS of class RING TO ONE AND CLACULATE IoU for Ring
+###### GET COMBINED MASK WITH POSTPROCESSING AND CLACULATE precission, recall and IoU
     #normal flatten
-    detected_mask_rings, detected_mask_cracks = sliding_window_detection(image = im_origin, overlap = 0.75, cropUpandDown = 0.17) # may be without crop
+    detected_mask = sliding_window_detection(image = image, modelRing=model, overlap = 0.75, cropUpandDown = 0) # may be without crop
+    detected_mask_rings = detected_mask[:,:,0]
     print("detected_mask_rings", detected_mask_rings.shape)
-    print("detected_mask_cracks", detected_mask_cracks.shape)
+    #print("detected_mask_cracks", detected_mask_cracks.shape)
     clean_contours_rings = clean_up_mask(detected_mask_rings, is_ring=True)
-    clean_contours_cracks = clean_up_mask(detected_mask_cracks, is_ring=False)
+    print("clean_contours_rings", len(clean_contours_rings))
+
+    combined_mask_binary = contours_to_binary(clean_contours_rings, imgheight, imgheight, debug=False)
+    print('combined_mask_binary.shape', combined_mask_binary.shape)
+
+    # Ploting lines is moslty for debugging
+    file_name = 'image'+ str(image_id)
+    masked_image = image.astype(np.uint32).copy()
+    masked_image = apply_mask(masked_image, detected_mask_rings, alpha=0.3)
+    plot_lines(image=masked_image,file_name=file_name,
+                path_out=IMAGE_PATH_OUT, gt_masks=gt_mask[:,:,gt_class_id==1],
+                clean_contours = clean_contours_rings, debug=False)
     # FINISHED HERE
-
-    mask_normal_flat = np.zeros(shape=(imgheight, imgheight))
-    mask_normal = mask_normal[:,:, mask_normal_classes==1] # to get only masks for rings
-    nmasks = mask_normal.shape[2]
-    if nmasks == 0:
-        mask_normal_flat = np.zeros(shape=(imgheight, imgheight))
-    else:
-        for m in range(0,nmasks):
-            mask_normal_flat = mask_normal_flat + mask_normal[:,:,m]
-    #print("nmasks", nmasks)
-    #print("mask_normal_flat", mask_normal_flat.shape)
-    #plt.imshow(mask_normal_flat)
-    #plt.show()
-    #90d flatten
-    mask_90_flat = np.zeros(shape=(imgheight, imgheight))
-    mask_90_back = mask_90_back[:,:,mask_90_classes==1] # to get only masks for rings
-    nmasks = mask_90_back.shape[2]
-    if nmasks == 0:
-        mask_90_flat = np.zeros(shape=(imgheight, imgheight))
-    else:
-        for m in range(0,nmasks):
-            mask_90_flat = mask_90_flat + mask_90_back[:,:,m]
-    #print("nmasks", nmasks)
-    #print("mask_90_flat", mask_90_flat.shape)
-    #45d flatten
-    mask_45_flat = np.zeros(shape=(imgheight, imgheight))
-    mask_45_back = mask_45_back[:,:,mask_45_classes==1] # to get only masks for rings
-    nmasks = mask_45_back.shape[2]
-    if nmasks == 0:
-        mask_45_flat = np.zeros(shape=(imgheight, imgheight))
-    else:
-        for m in range(0,nmasks):
-            mask_45_flat = mask_45_flat + mask_45_back[:,:,m]
-    #print("nmasks", nmasks)
-    #print("mask_45_flat", mask_45_flat.shape)
-    #combine to one
-    combined_mask = mask_normal_flat + mask_90_flat + mask_45_flat
-    #print("combined_mask", combined_mask.shape)
-    #plt.imshow(combined_mask)
-    #plt.show()
-
-    #flatten ground truth mask
+    """
+    # here i need to flatten cleaned_mask_binary
+    #flatten gt_mask
     gt_mask_flat = np.zeros(shape=(imgheight, imgheight))
     gt_mask = gt_mask[:,:,gt_class_id==1]
     nmasks = gt_mask.shape[2]
     for m in range(0,nmasks):
         gt_mask_flat = gt_mask_flat + gt_mask[:,:,m]
-    #calcumate IoU
-    combined_mask_binary = np.where(combined_mask >2 , 1, 0) # Here You can change how many of masks should overlap ad minimum to be considered in combined mask
-    #print("combined_mask_binary",combined_mask_binary.shape)
-    combined_mask_binary = np.reshape(combined_mask_binary, (1024,1024,1))
+
 
     #print('combined_mask_shape:', combined_mask_binary.shape)
     gt_mask_flat_binary = np.where(gt_mask_flat > 0, 1, 0)
     #print(gt_mask_flat_binary.shape)
     gt_mask_flat_binary = np.reshape(gt_mask_flat_binary, (1024,1024,1))
     print('gt_mask_shape:', gt_mask_flat_binary.shape)
-    IoU_combined_mask.append(utils.compute_overlaps_masks(gt_mask_flat_binary, combined_mask_binary))
+    #### THIS SHOULD BE DONE ON INDIVIDUAL MASKS AND NOT ON FLATENED
+    IoU_combined_mask.append(utils.compute_overlaps_masks(gt_mask_flat_binary, combined_mask_binary_wrong))
 
     #IoU_combined_mask = np.mean(IoU_combined_mask)
     #print('IoU_combined:', IoU_combined_mask)
+    """
 
-####### Try to separate combined masks into layers
-    separated_mask = modify_flat_mask(combined_mask_binary)
-    print('separated_mask_shape', separated_mask.shape)
-
-    #print(IoU_m)
-    #plt.imshow(gt_mask[:,:,3])
-    #plt.show()
-    #plt.imshow(separated_mask[:,:,0])
-    #plt.show()
-    mask_matrix = utils.compute_overlaps_masks(gt_mask, separated_mask)
-    #print("mask_matrix.shape", mask_matrix.shape)
+    mask_matrix = utils.compute_overlaps_masks(gt_mask, combined_mask_binary)
+    print("mask_matrix.shape", mask_matrix.shape)
+    print("mask_matrix", mask_matrix)
     # making binary numpy array with IoU treshold
+    ## HERE YOU CAN CALCULATE FOR ALL IoU
     IoU_treshold = 0.5 # i set it less because combined mask is bigger and it does not matter i think
     mask_matrix_binary = np.where(mask_matrix > IoU_treshold, 1, 0)
     #print (mask_matrix_binary)

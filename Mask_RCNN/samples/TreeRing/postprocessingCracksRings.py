@@ -17,7 +17,7 @@ cd /home/miroslavp/Github/TRG-ImageProcessing/CoreProcessingPipelineScripts/CNN/
 python3 postprocessingCracksRings.py --dpi=12926 --run_ID=RUN_ID_SOME_VALUE --input=/home/miroslavp/Pictures/whole_core_examples --weightRing=/home/miroslavp/Github/TRG-ImageProcessing/CoreProcessingPipelineScripts/CNN/Mask_RCNN/logs/treeringcrackscomb2_onlyring20210121T1457/mask_rcnn_treeringcrackscomb2_onlyring_0186.h5 --weightCrack=/home/miroslavp/Github/TRG-ImageProcessing/CoreProcessingPipelineScripts/CNN/Mask_RCNN/logs/treeringcrackscomb2_onlycracks20210121T2224/mask_rcnn_treeringcrackscomb2_onlycracks_0522.h5 --output_folder=/home/miroslavp/Documents/CNNTestRuns
 
 """
-
+"""
 #######################################################################
 #Arguments
 #######################################################################
@@ -50,7 +50,7 @@ parser.add_argument('--output_folder', required=True,
                     help="Path to output folder")
 
 args = parser.parse_args()
-
+"""
 #######################################################################
 # Imports and prepare model
 #######################################################################
@@ -78,51 +78,6 @@ from datetime import datetime
 from src_get_centerline import get_centerline
 from operator import itemgetter
 
-# Import Mask RCNN
-ROOT_DIR = os.path.abspath("../")
-print('ROOT_DIR', ROOT_DIR)
-sys.path.append(ROOT_DIR)  # To find local version of the library
-from mrcnn import utils
-from mrcnn import visualize
-import mrcnn.model as modellib
-from mrcnn.model import log
-
-from DetectionConfig import TreeRing_onlyRing
-from DetectionConfig import TreeRing_onlyCracks
-
-MODEL_DIR = os.path.join(ROOT_DIR, "logs")
-
-configRing = TreeRing_onlyRing.TreeRingConfig()
-configCrack = TreeRing_onlyCracks.TreeRingConfig()
-
-class InferenceConfig(configRing.__class__):
-    # Run detection on one image at a time
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-
-configRing = InferenceConfig()
-configRing.display()
-
-class InferenceConfig(configCrack.__class__):
-    # Run detection on one image at a time
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-
-configCrack = InferenceConfig()
-configCrack.display()
-# Create model in inference mode
-modelRing = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=configCrack)
-modelCrack = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=configRing)
-# Load weights
-weights_path_Ring = args.weightRing
-weights_path_Crack = args.weightCrack
-
-print("Loading weights ")
-modelRing.load_weights(weights_path_Ring, by_name=True)
-modelCrack.load_weights(weights_path_Crack, by_name=True)
-
-#define class names
-class_names = ['BG', 'ring']
 
 #######################################################################
 # apply mask to an original image
@@ -174,8 +129,8 @@ def write_run_info(string):
 ############################################################################################################
 # Sliding window detection with rotation of each part of image by 90 and 45 degrees and combining the output
 ############################################################################################################
-def sliding_window_detection(image, overlap = 0.5, cropUpandDown = 0):
-    write_run_info("Sliding window overlap = {} and cropUpandDown = {}".format(overlap, cropUpandDown))
+def sliding_window_detection(image, modelRing=None, modelCrack=None, min_score=None, overlap = 0.5, cropUpandDown = 0):
+    print("Sliding window overlap = {} and cropUpandDown = {}".format(overlap, cropUpandDown))
     #crop image top and bottom to avoid detectectig useles part of the image
     imgheight_origin, imgwidth_origin = image.shape[:2]
 
@@ -200,7 +155,12 @@ def sliding_window_detection(image, overlap = 0.5, cropUpandDown = 0):
     #print('looping_list', looping_list)
 
     combined_masks_per_class = np.empty(shape=(imgheight, imgwidth,0))
-    for model in [modelRing, modelCrack]:
+    if modelCrack==None:
+        models = [modelRing]
+    else:
+        models = [modelRing, modelCrack]
+    # Run detection by the models
+    for model in models:
         the_mask = np.zeros(shape=(imgheight, imgwidth)) #combine all the partial masks in the final size of full tiff
         #print('the_mask', the_mask.shape)
         for i in looping_list: #defines the slide value
@@ -213,30 +173,36 @@ def sliding_window_detection(image, overlap = 0.5, cropUpandDown = 0):
             # run detection on the cropped part of the image
             results = model.detect([cropped_part], verbose=0)
             r = results[0]
-            r_mask = r['masks']
+            # take only masks with score above a min_score value
+            score_ids = np.where(r['scores'] > min_score)[0] #Ids for predictions above certain score threshold
+            r_mask = np.take(r['masks'], score_ids, axis=2)
             #visualize.display_instances(cropped_part, r['rois'], r['masks'], r['class_ids'], class_names, r['scores']) #just to check
 
             # rotate image 90 and run detection
             cropped_part_90 = skimage.transform.rotate(cropped_part, 90, preserve_range=True).astype(np.uint8)
             results1 = model.detect([cropped_part_90], verbose=0)
             r1 = results1[0]
-            r1_mask = r1['masks']
+            # take only masks with score above a min_score value
+            score_ids1 = np.where(r1['scores'] > min_score)[0] #Ids for predictions above certain score threshold
+            r1_mask = np.take(r1['masks'], score_ids1, axis=2)
             #visualize.display_instances(cropped_part_90, r1['rois'], r1['masks'], r1['class_ids'], class_names, r1['scores']) #just to check
 
             # rotate image 45 and run detection
             cropped_part_45 = skimage.transform.rotate(cropped_part, angle = 45, resize=True).astype(np.uint8)
             results2 = model.detect([cropped_part_45], verbose=0)
             r2 = results2[0]
-            r2_mask = r2['masks']
+            # take only masks with score above a min_score value
+            score_ids2 = np.where(r2['scores'] > min_score)[0] #Ids for predictions above certain score threshold
+            r2_mask = np.take(r2['masks'], score_ids2, axis=2)
 
-            ## flatten all in one layer. This should be one layer of zeroes and ones. If applying som e cleaning i would do it before this point or cleaning of the final one might be even better
+            ## flatten all in one layer. This should be one layer of zeroes and ones. If applying some cleaning i would do it before this point or cleaning of the final one might be even better
             maskr = np.zeros(shape=(imgheight, imgheight))
             #print('maskr_empty', maskr)
             nmasks = r_mask.shape[2]
-            #print(nmasks)
+            #print('nmasks', nmasks)
             for m in range(0,nmasks):
                 maskr = maskr + r_mask[:,:,m]
-                #print(maskr.sum())
+            #print('maskr', maskr.shape)
 
             maskr1 = np.zeros(shape=(imgheight, imgheight))
             nmasks1 = r1_mask.shape[2]
@@ -245,6 +211,7 @@ def sliding_window_detection(image, overlap = 0.5, cropUpandDown = 0):
             ## rotate maskr1 masks back
             maskr1_back = np.rot90(maskr1, k=-1)
             # beware different dimensions!!!
+            #print('maskr1_back', maskr1_back.shape)
 
             imheight2 = r2_mask.shape[0]
             nmasks2 = r2_mask.shape[2]
@@ -257,6 +224,7 @@ def sliding_window_detection(image, overlap = 0.5, cropUpandDown = 0):
             to_crop = int((imheight2 - imgheight)/2)
 
             maskr2_back_cropped = maskr2_back[to_crop:(to_crop+int(imgheight)), to_crop:(to_crop+int(imgheight))]
+            #print('maskr2_back_cropped', maskr2_back_cropped.shape)
 
             ## put both togather. before this can one turn everything to 0 and 1 or leave it so far but may be it is not too useful to detect very overlapping areas
             combined_mask = maskr1_back + maskr + maskr2_back_cropped
@@ -285,21 +253,23 @@ def sliding_window_detection(image, overlap = 0.5, cropUpandDown = 0):
     #print('front', pad_front)
     pad_back = zero_padding_back.shape[1]
     the_mask_clean = combined_masks_per_class[:,pad_front:-pad_back,:]
-    #print('the_mask_clean.shape', the_mask_clean.shape)
-    #print('the_mask_clean', the_mask_clean.shape)
+
+    print('the_mask_clean.shape', the_mask_clean.shape)
 
     #here you have to concatanete the top and buttom to fit the original image
 
     missing_part = int((imgheight_origin - the_mask_clean.shape[0])/2)
-    to_concatenate = np.zeros(shape=(missing_part, imgwidth_origin,2))
-    #print("to_concatenate", to_concatenate.shape)
+    print("missing_part", missing_part)
+    n_mask_clean = the_mask_clean.shape[2]
+    to_concatenate = np.zeros(shape=(missing_part, imgwidth_origin,n_mask_clean))
+    #print("to_concatenate.shape", to_concatenate.shape)
     the_mask_clean_origin_size = np.concatenate((to_concatenate, the_mask_clean, to_concatenate),axis=0)
     #print('the_mask_clean_origin_size', the_mask_clean_origin_size.shape)
     #plt.imshow(the_mask_clean) # uncomment to print mask layer
     #plt.show()
     # TO PRINT THE MASK OVERLAYING THE IMAGE
 
-    return the_mask_clean_origin_size[:,:,0], the_mask_clean_origin_size[:,:,1]
+    return the_mask_clean_origin_size
 
 #######################################################################
 # Extract distances from the mask
@@ -357,7 +327,7 @@ def clean_up_mask(mask, is_ring=True):
         contours_out = [x for _,x in sorted(contourszip, reverse = False)]
     else:
         contours_out = contours_filtered
-        
+
     return contours_out # Returns filtered and orderedt contours
 
 #######################################################################
@@ -643,21 +613,18 @@ def measure_contours(Multi_centerlines, image):
 #######################################################################
 # plot predicted lines and points of measurements to visually assess
 #######################################################################
-def plot_lines(image, centerlines, measure_points, file_name, angle_index, path_out):
+def plot_lines(image, file_name, path_out, gt_masks=None, clean_contours=None ,centerlines=None, measure_points=None, debug=True):
     #create pngs folder in output path
-    write_run_info("Plotting output as png")
+    print("Plotting output as png")
     export_path = os.path.join(path_out, 'pngs')
     if not os.path.exists(export_path):
         os.makedirs(export_path)
 
-    #export_path = '/groups/swarts/lab/DendroImages/Plot8CNN_toTest/DetectionJpegs'
-
-    #export_path = '/Users/miroslav.polacek/Documents/CNNRundomRubbish/CropTesting'
     f = file_name + '.png'
 
-    #save images at original size unles they are bigger then 30000. Should improve diagnostics on the images
+    #save images at original size unless they are bigger then 30000. Should improve diagnostics on the images
     imgheight, imgwidth = image.shape[:2]
-    #sprint('imgheight, imgwidth', imgheight, imgwidth)
+    #print('imgheight, imgwidth', imgheight, imgwidth)
     plot_dpi = 100
 
     if imgwidth < 30000:
@@ -670,52 +637,92 @@ def plot_lines(image, centerlines, measure_points, file_name, angle_index, path_
         #fig, (ax1, ax2) = plt.subplots(2)
         plt.imshow(image)
 
+    if centerlines is not None:
+        #plot the lines to the image
+        if not isinstance(centerlines, list) and len(centerlines)>2:
 
-    #plot the lines to the image
-    if not isinstance(centerlines, list) and len(centerlines)>2:
-
-        #plt.figure(figsize = (30,15))
-        #plt.imshow(image)
-        for i in range(len(centerlines.geoms)-1):
-            #print('loop', i)
-            points = measure_points[i]
-
-            xc,yc = centerlines[i].coords.xy
-            plt.plot(xc,yc,'g')
-
-            xp, yp = points[0].coords.xy
-            xp1, yp1 = points[1].coords.xy
-            plt.plot([xp, xp1], [yp, yp1], 'r')
-
-        xc,yc = centerlines[-1].coords.xy
-        plt.plot(xc,yc,'g')
-        #plt.show()
-
-
-    elif isinstance(centerlines, list) and len(centerlines)==2:
-        for l in range(2):
-            color = ['g', 'b']
-            centerlines1 = centerlines[l]
-            #print('measure_points:', len(measure_points))
-            measure_points1 = measure_points[l]
-            if len(measure_points1)==0: # is only precoation in case the first part of measure points is empty
-                continue
-            for i in range(len(centerlines1.geoms)-1):
+            #plt.figure(figsize = (30,15))
+            #plt.imshow(image)
+            for i in range(len(centerlines.geoms)-1):
                 #print('loop', i)
+                points = measure_points[i]
 
-                xc,yc = centerlines1[i].coords.xy
-                plt.plot(xc,yc,color[l])
+                xc,yc = centerlines[i].coords.xy
+                plt.plot(xc,yc,'g')
 
-                points = measure_points1[i]
                 xp, yp = points[0].coords.xy
                 xp1, yp1 = points[1].coords.xy
                 plt.plot([xp, xp1], [yp, yp1], 'r')
 
-            xc,yc = centerlines1[-1].coords.xy # to print the last point
-            plt.plot(xc,yc, color[l])
-        #plt.show()
+            xc,yc = centerlines[-1].coords.xy
+            plt.plot(xc,yc,'g')
+            #plt.show()
 
-    plt.savefig(os.path.join(export_path, f), bbox_inches = 'tight', pad_inches = 0)
+
+        elif isinstance(centerlines, list) and len(centerlines)==2:
+            for l in range(2):
+                color = ['g', 'b']
+                centerlines1 = centerlines[l]
+                #print('measure_points:', len(measure_points))
+                measure_points1 = measure_points[l]
+                if len(measure_points1)==0: # is only precoation in case the first part of measure points is empty
+                    continue
+                for i in range(len(centerlines1.geoms)-1):
+                    #print('loop', i)
+
+                    xc,yc = centerlines1[i].coords.xy
+                    plt.plot(xc,yc,color[l])
+
+                    points = measure_points1[i]
+                    xp, yp = points[0].coords.xy
+                    xp1, yp1 = points[1].coords.xy
+                    plt.plot([xp, xp1], [yp, yp1], 'r')
+
+                xc,yc = centerlines1[-1].coords.xy # to print the last point
+                plt.plot(xc,yc, color[l])
+    # plot contour of ground truth masks
+    if gt_masks is not None:
+        gt_mask_flat = np.zeros(shape=(imgheight, imgheight))
+        nmasks = gt_masks.shape[2]
+        print('n_gt_masks', nmasks)
+        for m in range(0,nmasks):
+            gt_mask_flat = gt_mask_flat + gt_masks[:,:,m]
+        uint8binary = gt_mask_flat.astype(np.uint8).copy()
+        # Older version of openCV has slightly different syntax i adjusted for it here
+        if int(cv2.__version__.split(".")[0]) < 4:
+            _, contours, _ = cv2.findContours(uint8binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+        else:
+            contours, _ = cv2.findContours(uint8binary,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+        print('contour_shape:', len(contours))
+        # Extract x and y coordinates
+        for i in range(len(contours)):
+            print('printing contour', i)
+            x_contour = []
+            y_contour = []
+            for p in range(len(contours[i])):
+                [[x,y]] = contours[i][p]
+                x_contour.append(x)
+                y_contour.append(y)
+            plt.plot(x_contour, y_contour, color='k', linestyle=':')
+
+    # plot contours of cleaned masks
+    if clean_contours is not None:
+        # Extract x and y coordinates
+        for i in range(len(clean_contours)):
+            print('printing clean_contour', i)
+            x_contour = []
+            y_contour = []
+            for p in range(len(clean_contours[i])):
+                [[x,y]] = clean_contours[i][p]
+                x_contour.append(x)
+                y_contour.append(y)
+            plt.plot(x_contour, y_contour, color='r')
+
+    if debug == True:
+        plt.show()
+
+    else:
+        plt.savefig(os.path.join(export_path, f), bbox_inches = 'tight', pad_inches = 0)
 
 #######################################################################
 # create a json file for shiny
@@ -882,71 +889,122 @@ def write_to_pos(centerlines, measure_points, file_name, image_name, DPI, path_o
 #######################################################################
 # Run detection on an images
 #######################################################################
-path_out = os.path.join(args.output_folder, args.run_ID)
- # check if output dir for run_ID exists and if not create it
-if not os.path.isdir(path_out):
-    os.mkdir(path_out)
+if __name__ == '__main__':
+    main()
 
-now = datetime.now()
-dt_string_name = now.strftime("D%Y%m%d_%H%M%S") #"%Y-%m-%d_%H:%M:%S"
-dt_string = now.strftime("%Y-%m-%d_%H:%M:%S")
-run_ID = args.run_ID
-log_file_name = 'CNN_' + run_ID + '_' + dt_string_name + '.log' #"RunID" + dt_string +
-log_file_path =os.path.join(path_out, log_file_name)
+def main():
+    # Import Mask RCNN
+    ROOT_DIR = os.path.abspath("../")
+    print('ROOT_DIR', ROOT_DIR)
+    sys.path.append(ROOT_DIR)  # To find local version of the library
+    from mrcnn import utils
+    from mrcnn import visualize
+    import mrcnn.model as modellib
+    from mrcnn.model import log
 
-# initiate log file
-with open(log_file_path,"x") as fi:
-    print("Run started:" + dt_string, file=fi)
-    print("Ring weights used:" + weights_path_Ring, file=fi)
-    print("Crack weights used:" + weights_path_Crack, file=fi)
+    from DetectionConfig import TreeRing_onlyRing
+    from DetectionConfig import TreeRing_onlyCracks
 
-# create a list of already exported jsons to prevent re-running the same image
-json_list = []
-for f in os.listdir(path_out):
-    if f.endswith('.json'):
-        json_name = f.replace('.json', '')
-        json_list.append(json_name)
+    MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 
-input = args.input
-# check pathin if its folder or file and get file list of either
-if os.path.isfile(input):
-    # get file name and dir to file
-    input_list = [os.path.basename(input)]
-    input_path = os.path.split(input)[0]
-elif os.path.isdir(input):
-    # get a list of files in the dir
-    input_list = os.listdir(input)
-    input_path = input
-else:
-    print("Image argument is neither valid file nor directory")
-    write_run_info("Image argument is neither valid file nor directory")
-#print("got until here", input_list, input_path)
+    configRing = TreeRing_onlyRing.TreeRingConfig()
+    configCrack = TreeRing_onlyCracks.TreeRingConfig()
 
-for f in input_list:
-    if f.endswith('.tif') and f.replace('.tif', '') not in json_list:
-        print("Processing image: {}".format(f))
-        write_run_info("Processing image: {}".format(f))
-        image_path = os.path.join(input_path, f)
-        im_origin = skimage.io.imread(image_path)
+    class InferenceConfig(configRing.__class__):
+        # Run detection on one image at a time
+        GPU_COUNT = 1
+        IMAGES_PER_GPU = 1
 
-        detected_mask_rings, detected_mask_cracks = sliding_window_detection(image = im_origin, overlap = 0.75, cropUpandDown = 0.17)
-        print("detected_mask_rings", detected_mask_rings.shape)
-        print("detected_mask_cracks", detected_mask_cracks.shape)
-        clean_contours_rings = clean_up_mask(detected_mask_rings, is_ring=True)
-        clean_contours_cracks = clean_up_mask(detected_mask_cracks, is_ring=False)
+    configRing = InferenceConfig()
+    configRing.display()
 
-        centerlines_rings = find_centerlines(clean_contours_rings)
+    class InferenceConfig(configCrack.__class__):
+        # Run detection on one image at a time
+        GPU_COUNT = 1
+        IMAGES_PER_GPU = 1
 
-        centerlines, measure_points, angle_index, cutting_point = measure_contours(centerlines_rings, detected_mask_rings)
+    configCrack = InferenceConfig()
+    configCrack.display()
+    # Create model in inference mode
+    modelRing = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=configCrack)
+    modelCrack = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=configRing)
 
-        write_to_json(f, centerlines_rings, clean_contours_rings, clean_contours_cracks, cutting_point, run_ID, path_out)
-        image_name = f.replace('.tif', '')
-        DPI = float(args.dpi)
-        write_to_pos(centerlines, measure_points, image_name, f, DPI, path_out)
+    #define class names
+    class_names = ['BG', 'ring']
 
-        # Ploting lines is moslty for debugging
-        masked_image = im_origin.astype(np.uint32).copy()
-        masked_image = apply_mask(masked_image, detected_mask_rings, alpha=0.2)
-        masked_image = apply_mask(masked_image, detected_mask_cracks, alpha=0.3)
-        plot_lines(masked_image, centerlines, measure_points, image_name, angle_index, path_out)
-        write_run_info("IMAGE FINISHED")
+    # Load weights
+    weights_path_Ring = args.weightRing
+    weights_path_Crack = args.weightCrack
+
+    print("Loading weights ")
+    modelRing.load_weights(weights_path_Ring, by_name=True)
+    modelCrack.load_weights(weights_path_Crack, by_name=True)
+
+    path_out = os.path.join(args.output_folder, args.run_ID)
+     # check if output dir for run_ID exists and if not create it
+    if not os.path.isdir(path_out):
+        os.mkdir(path_out)
+
+    now = datetime.now()
+    dt_string_name = now.strftime("D%Y%m%d_%H%M%S") #"%Y-%m-%d_%H:%M:%S"
+    dt_string = now.strftime("%Y-%m-%d_%H:%M:%S")
+    run_ID = args.run_ID
+    log_file_name = 'CNN_' + run_ID + '_' + dt_string_name + '.log' #"RunID" + dt_string +
+    log_file_path =os.path.join(path_out, log_file_name)
+
+    # initiate log file
+    with open(log_file_path,"x") as fi:
+        print("Run started:" + dt_string, file=fi)
+        print("Ring weights used:" + weights_path_Ring, file=fi)
+        print("Crack weights used:" + weights_path_Crack, file=fi)
+
+    # create a list of already exported jsons to prevent re-running the same image
+    json_list = []
+    for f in os.listdir(path_out):
+        if f.endswith('.json'):
+            json_name = f.replace('.json', '')
+            json_list.append(json_name)
+
+    input = args.input
+    # check pathin if its folder or file and get file list of either
+    if os.path.isfile(input):
+        # get file name and dir to file
+        input_list = [os.path.basename(input)]
+        input_path = os.path.split(input)[0]
+    elif os.path.isdir(input):
+        # get a list of files in the dir
+        input_list = os.listdir(input)
+        input_path = input
+    else:
+        print("Image argument is neither valid file nor directory")
+        write_run_info("Image argument is neither valid file nor directory")
+    #print("got until here", input_list, input_path)
+
+    for f in input_list:
+        if f.endswith('.tif') and f.replace('.tif', '') not in json_list:
+            print("Processing image: {}".format(f))
+            write_run_info("Processing image: {}".format(f))
+            image_path = os.path.join(input_path, f)
+            im_origin = skimage.io.imread(image_path)
+
+            detected_mask_rings, detected_mask_cracks = sliding_window_detection(image = im_origin, overlap = 0.75, cropUpandDown = 0.17)
+            print("detected_mask_rings", detected_mask_rings.shape)
+            print("detected_mask_cracks", detected_mask_cracks.shape)
+            clean_contours_rings = clean_up_mask(detected_mask_rings, is_ring=True)
+            clean_contours_cracks = clean_up_mask(detected_mask_cracks, is_ring=False)
+
+            centerlines_rings = find_centerlines(clean_contours_rings)
+
+            centerlines, measure_points, angle_index, cutting_point = measure_contours(centerlines_rings, detected_mask_rings)
+
+            write_to_json(f, centerlines_rings, clean_contours_rings, clean_contours_cracks, cutting_point, run_ID, path_out)
+            image_name = f.replace('.tif', '')
+            DPI = float(args.dpi)
+            write_to_pos(centerlines, measure_points, image_name, f, DPI, path_out)
+
+            # Ploting lines is moslty for debugging
+            masked_image = im_origin.astype(np.uint32).copy()
+            masked_image = apply_mask(masked_image, detected_mask_rings, alpha=0.2)
+            masked_image = apply_mask(masked_image, detected_mask_cracks, alpha=0.3)
+            plot_lines(masked_image, centerlines, measure_points, image_name, angle_index, path_out)
+            write_run_info("IMAGE FINISHED")
