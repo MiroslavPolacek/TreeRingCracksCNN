@@ -18,6 +18,6 @@ do
     /users/miroslav.polacek/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/evaluate_weights_realPost_simple.py \
     --TreeRingConf=$FILE \
     --dataset=/users/miroslav.polacek/eval_testing/val_new_subset \
-    --weight=/groups/swarts/user/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb2_onlyring20210121T1457/mask_rcnn_treeringcrackscomb2_onlyring_0186.h5
+    --weight=/groups/swarts/user/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb2_onlyring20210121T1457/mask_rcnn_treeringcrackscomb2_onlyring_0186.h5 \
     --path_out=/users/miroslav.polacek/eval_testing/results
 done
