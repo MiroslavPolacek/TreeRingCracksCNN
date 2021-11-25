@@ -592,7 +592,7 @@ for image_id in image_ids:
 
 print("LOOP FINISHED, SOME RESULTS")
 print(APlist, TP, FP)
-print(IoU_combined, TPs_combined)
+print(IoU_combined, TP_combined)
 #print("IoU_combined_mask",IoU_combined_mask)
 
 #CALCULATE AVERAGES FOR ALL IMAGES
