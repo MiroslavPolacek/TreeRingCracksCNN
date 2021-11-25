@@ -6,7 +6,7 @@
 #SBATCH --mem=120G
 #SBATCH --qos=short
 #SBATCH --time=0-01:00:00
-#SBATCH --output=eval_real_post.stdout
+#SBATCH --output=eval_real_post_test.stdout
 
 ml load anaconda3/2019.03
 source activate ~/.conda/envs/TreeRingCNN
