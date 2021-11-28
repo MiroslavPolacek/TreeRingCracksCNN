@@ -97,10 +97,11 @@ if not os.path.exists(IMAGE_PATH_OUT): #check if it already exists and if not ma
 #################################################################################
 # Evaluate detected masks (TP, FP, FN) in a range of score values
 #################################################################################
-def TP_FP_FN_IoU_per_score_mask(gt_mask, pred_mask, scores, IoU_threshold):
+def TP_FP_FN_IoU_per_score_mask(gt_mask, pred_mask, scores, IoU_threshold, score_range=None):
 
     #loop scores
-    score_range = np.arange(0.5, 1.0, 0.05)
+    if score_range is None:
+        score_range = np.arange(0.5, 1.0, 0.05)
         #print(gt_r)
         #print(pred_r)
 
@@ -128,7 +129,7 @@ def TP_FP_FN_IoU_per_score_mask(gt_mask, pred_mask, scores, IoU_threshold):
         #for every score range callculate TP, ...append by the socre ranges
         # making binary numpy array with IoU threshold
         mask_matrix_binary = np.where(mask_matrix > IoU_threshold, 1, 0)
-        #print (mask_matrix_binary)
+        #print("mask_matrix_binary", mask_matrix_binary)
 
         #GT rings and predicted rigs
         #print("MASK MATRIX SHAPE", mask_matrix.shape)
@@ -165,7 +166,7 @@ def TP_FP_FN_IoU_per_score_mask(gt_mask, pred_mask, scores, IoU_threshold):
 #################################################################################
 # Evaluate masks (TP, FP, FN) over a range of IoU thresholds
 #################################################################################
-def TP_FP_FN_IoU_matrices(gt_mask, pred_mask, scores, IoU_thresholds=None):
+def TP_FP_FN_IoU_matrices(gt_mask, pred_mask, scores, score_range, IoU_thresholds=None):
     """Compute TP, FP and FN over a range or IoU thresholds. Default range is 0.5-0.95."""
     # Default is 0.5 to 0.95 with increments of 0.05
     if IoU_thresholds is None:
@@ -178,8 +179,10 @@ def TP_FP_FN_IoU_matrices(gt_mask, pred_mask, scores, IoU_thresholds=None):
     IoUs = []
     for iou in IoU_thresholds:
         TP, FP, FN, IoU = TP_FP_FN_IoU_per_score_mask(gt_mask, pred_mask,
-                                                            scores, IoU_threshold=iou)
-        if iou == 0:
+                                                            scores,
+                                                            IoU_threshold=iou,
+                                                            score_range=score_range)
+        if iou == min(IoU_thresholds):
             IoUs = IoU
         TPs.append(TP)
         FPs.append(FP)
@@ -229,9 +232,9 @@ def TP_FP_FN_IoU_comb(gt_mask, pred_mask, IoU_thresholds=None):
     for iou_threshold in IoU_thresholds:
 
         mask_matrix = utils.compute_overlaps_masks(gt_mask, pred_mask)
-        #print("mask_matrix", mask_matrix)
+        #print("combined_mask_matrix", mask_matrix)
 
-        if iou_threshold == 0:
+        if iou_threshold == min(IoU_thresholds):
             # calculate average IoU
             IoU_clean = mask_matrix[np.where(mask_matrix>0)]
             #print("IoU_clean", IoU_clean)
@@ -240,7 +243,7 @@ def TP_FP_FN_IoU_comb(gt_mask, pred_mask, IoU_thresholds=None):
         #for every score range callculate TP, ...append by the socre ranges
         # making binary numpy array with IoU threshold
         mask_matrix_binary = np.where(mask_matrix > iou_threshold, 1, 0)
-        #print (mask_matrix_binary)
+        #print ("comb_mask_matrix_binary", mask_matrix_binary)
 
         #GT rings and predicted rigs
         #print("MASK MATRIX SHAPE", mask_matrix.shape)
@@ -333,6 +336,7 @@ def modify_flat_mask(mask):
 def contours_to_binary(clean_contours,imheight,imwidth, debug=False):
     mask = np.zeros([imheight,imwidth, len(clean_contours)],
                     dtype=np.uint8)
+
     for i in range(len(clean_contours)):
         # separate x and y coords for contour
         x_list = []
@@ -341,10 +345,10 @@ def contours_to_binary(clean_contours,imheight,imwidth, debug=False):
             [[x,y]] = clean_contours[i][p]
             x_list.append(x)
             y_list.append(y)
-        mask = np.zeros([imheight,imwidth, len(clean_contours)],
-                        dtype=np.uint8)
+
         r, c = skimage.draw.polygon(y_list, x_list)
         mask[r, c, i] = 1
+
     if debug==True:
         plt.imshow(mask[:,:,0])
         plt.show()
@@ -434,8 +438,12 @@ FP_combined = []
 FN_combined = []
 
 ## thresholds
-iou_thresholds = np.arange(0, 1.0, 0.05)
-score_range = np.arange(0.5, 1.0, 0.05)
+iou_thresholds = np.round(np.arange(0.5, 1.0, 0.05),2)
+score_range = np.round(np.arange(0.5, 1.02, 0.02),2)
+
+## short for debugging
+#iou_thresholds = np.arange(0.5, 0.55, 0.05)
+#score_range = np.arange(0.55, 0.6, 0.05)
 
 # Main structure
 for image_id in image_ids:
@@ -455,12 +463,15 @@ for image_id in image_ids:
                         gt_mask=gt_mask, pred_box=r['rois'], pred_class_id=r['class_ids'],
                         pred_score=r['scores'], pred_mask=r['masks'],
                         IoU_thresholds=iou_thresholds, verbose=1)
-    TPs, FPs, FNs, IoUs = TP_FP_FN_IoU_matrices(gt_mask, r['masks'], scores=r['scores'], IoU_thresholds=iou_thresholds)
+    TPs, FPs, FNs, IoUs = TP_FP_FN_IoU_matrices(gt_mask, r['masks'],
+                                                scores=r['scores'],
+                                                IoU_thresholds=iou_thresholds,
+                                                score_range=score_range)
 
     APlist.append(AP_L)
     TP.append(TPs)
     FP.append(FPs)
-    FN.append(FN)
+    FN.append(FNs)
     IoU.append(IoUs)
 
     print("results so far:")
@@ -486,12 +497,16 @@ for image_id in image_ids:
                         gt_mask=gt_mask, pred_box=extracted_bboxes_90, pred_class_id=r['class_ids'],
                         pred_score=r['scores'], pred_mask=mask_90_back,
                         IoU_thresholds=iou_thresholds, verbose=1)
-    TPs_90, FPs_90, FNs_90, IoUs_90 = TP_FP_FN_IoU_matrices(gt_mask, mask_90_back, scores=r['scores'], IoU_thresholds=iou_thresholds)
+    TPs_90, FPs_90, FNs_90, IoUs_90 = TP_FP_FN_IoU_matrices(gt_mask,
+                                                            mask_90_back,
+                                                            scores=r['scores'],
+                                                            IoU_thresholds=iou_thresholds,
+                                                            score_range=score_range)
 
     APlist_90.append(AP_L_90)
     TP_90.append(TPs_90)
     FP_90.append(FPs_90)
-    FN_90.append(FN_90)
+    FN_90.append(FNs_90)
     IoU_90.append(IoUs_90)
 
     print("results so far 90:")
@@ -528,12 +543,16 @@ for image_id in image_ids:
                         gt_mask=gt_mask, pred_box=extracted_bboxes_45, pred_class_id=r['class_ids'],
                         pred_score=r['scores'], pred_mask=mask_45_back,
                         IoU_thresholds=iou_thresholds, verbose=1)
-    TPs_45, FPs_45, FNs_45, IoUs_45 = TP_FP_FN_IoU_matrices(gt_mask, mask_45_back, scores=r['scores'], IoU_thresholds=iou_thresholds)
+    TPs_45, FPs_45, FNs_45, IoUs_45 = TP_FP_FN_IoU_matrices(gt_mask,
+                                                            mask_45_back,
+                                                            scores=r['scores'],
+                                                            IoU_thresholds=iou_thresholds,
+                                                            score_range=score_range)
 
     APlist_45.append(AP_L_45)
     TP_45.append(TPs_45)
     FP_45.append(FPs_45)
-    FN_45.append(FN_45)
+    FN_45.append(FNs_45)
     IoU_45.append(IoUs_45)
 
     print("results so far 45:")
@@ -553,20 +572,20 @@ for image_id in image_ids:
         detected_mask_rings = detected_mask[:,:,0]
         #print("detected_mask_rings", detected_mask_rings.shape)
         #print("detected_mask_cracks", detected_mask_cracks.shape)
-        clean_contours_rings = clean_up_mask(detected_mask_rings, is_ring=True)
+        clean_contours_rings = clean_up_mask(detected_mask_rings, is_ring=False)
         #print("clean_contours_rings", len(clean_contours_rings))
 
         combined_mask_binary = contours_to_binary(clean_contours_rings, imgheight, imgheight, debug=False)
         print('combined_mask_binary.shape', combined_mask_binary.shape)
 
-        if False:
+        if True:
             # Ploting lines is moslty for debugging
             file_name = 'image'+ str(image_id)
             masked_image = image.astype(np.uint32).copy()
             masked_image = apply_mask(masked_image, detected_mask_rings, alpha=0.3)
             plot_lines(image=masked_image,file_name=file_name,
-                        path_out=IMAGE_PATH_OUT, gt_masks=gt_mask[:,:,gt_class_id==1],
-                        clean_contours = clean_contours_rings, debug=True)
+                        path_out=IMAGE_PATH_OUT, SR=SR, gt_masks=gt_mask[:,:,gt_class_id==1],
+                        clean_contours = clean_contours_rings, debug=False)
 
         TPs, FPs, FNs, IoUs = TP_FP_FN_IoU_comb(gt_mask, combined_mask_binary, IoU_thresholds=iou_thresholds)
 
@@ -576,8 +595,8 @@ for image_id in image_ids:
         IoU_temp.append(IoUs)
     # transpose the arrays so they have the same structure as the previous
     TP_T = np.array(TP_temp).T.tolist()
-    FP_T = np.array(TP_temp).T.tolist()
-    FN_T = np.array(TP_temp).T.tolist()
+    FP_T = np.array(FP_temp).T.tolist()
+    FN_T = np.array(FN_temp).T.tolist()
     IoU_T = []
     for i in IoU_temp:
         IoU_T.extend(i)
@@ -600,19 +619,28 @@ print(IoU_combined, TP_combined)
 ## AP
 APlist_mean = np.nanmean(APlist, axis=0)
 print("APlist_mean", APlist_mean)
+
 ## TP_FP_FN
-TPsum = np.array(np.sum(TP))
-FPsum = np.array(np.sum(FP, axis=0))
-FNsum = np.array(np.sum(FN, axis=0))
+TPsum = np.array(np.sum(TP, axis=0))
+print("TP", TP)
 print("TPsum", TPsum)
-print("TPsum.shape", TPsum.shape)
+FPsum = np.array(np.sum(FP, axis=0))
+print("FP", FP)
+print("FPsum", FPsum)
+print("FN", FN)
+
+FNsum = np.array(np.sum(FN, axis=0))
+print("FNsum", FNsum)
 
 sen = TPsum/(TPsum+FNsum)
-prec = TPsum/(TPsum+FPsum)
 print("sen", sen)
-print("sen.shape", sen.shape)
+
+prec = TPsum/(TPsum+FPsum)
+print("prec", prec)
+F = (2*prec*sen)/(prec+sen)
 ## IoU
 IoUmean = np.nanmean(IoU, axis=0)
+print("IoUmean", IoUmean)
 
 #90 DEGREE ROTATION
 ## AP group _90
@@ -624,9 +652,12 @@ FN_90sum = np.array(np.sum(FN_90, axis=0))
 
 sen_90 = TP_90sum/(TP_90sum+FN_90sum)
 prec_90 = TP_90sum/(TP_90sum+FP_90sum)
+print("sen_90", sen_90)
+print("prec_90", prec_90)
+F_90 = (2*prec_90*sen_90)/(prec_90+sen_90)
 ## IoU_group
-IoU_90sum = np.nanmean(IoU_90, axis=0)
-
+IoU_90mean = np.nanmean(IoU_90, axis=0)
+print("IoU_90mean", IoU_90mean)
 #45 DEGREE ROTATION
 APlist_45mean = np.nanmean(APlist_45, axis=0)
 ## TP_FP_FN_group
@@ -636,9 +667,12 @@ FN_45sum = np.array(np.sum(FN_45, axis=0))
 
 sen_45 = TP_45sum/(TP_45sum+FN_45sum)
 prec_45 = TP_45sum/(TP_45sum+FP_45sum)
+print("sen_45", sen_45)
+print("prec_45", prec_45)
+F_45 = (2*prec_45*sen_45)/(prec_45+sen_45)
 ## IoU_group
 IoU_45mean = np.nanmean(IoU_45, axis=0)
-
+print("IoU_45mean", IoU_45mean)
 #COMBINED MASK
 IoU_combined_mean = np.nanmean(IoU_combined, axis=0)
 TP_combined_sum = np.array(np.sum(TP_combined, axis=0))
@@ -647,10 +681,11 @@ FN_combined_sum = np.array(np.sum(FN_combined, axis=0))
 
 # THIS FOR EVERY GROUP
 ### calculate sensitivity and precission
-SEN_combined = TP_combined_sum/(TP_combined_sum+FN_combined_sum)
-PREC_combined = TP_combined_sum/(TP_combined_sum+FP_combined_sum)
-#print("SEN", SEN)
-#print("PREC", PREC)
+sen_combined = TP_combined_sum/(TP_combined_sum+FN_combined_sum)
+prec_combined = TP_combined_sum/(TP_combined_sum+FP_combined_sum)
+print("sen_combined", sen_combined)
+print("prec_combined", prec_combined)
+F_combined = (2*prec_combined*sen_combined)/(prec_combined+sen_combined)
 
 #######################################################################
 #Save output
@@ -677,74 +712,127 @@ if not os.path.exists(weight_eval_DIR): #check if it already exists and if not m
     os.makedirs(weight_eval_DIR)
 
 ## SAVE ALL THE RAW TABLES
+score_range_string = [str(x) for x in score_range]
 # 0
-TPsumdf = pd.DataFrame(TPsum, columns = str(iou_thresholds))
+TPsumdf = pd.DataFrame(TPsum, columns = score_range_string)
+TPsumdf['IoU_thresh'] = iou_thresholds
+print("TPsumdf", TPsumdf)
 TPsumdf.to_csv(os.path.join(weight_eval_DIR, 'TP_perScore_IoU{}.csv'.format(weight_name)))
 
-FPsumdf = pd.DataFrame(FPsum, columns = str(iou_thresholds))
+FPsumdf = pd.DataFrame(FPsum, columns = score_range_string)
+FPsumdf['IoU_thresh'] = iou_thresholds
 FPsumdf.to_csv(os.path.join(weight_eval_DIR, 'FP_perScore_IoU{}.csv'.format(weight_name)))
 
-FNsumdf = pd.DataFrame(FNsum, columns = str(iou_thresholds))
+FNsumdf = pd.DataFrame(FNsum, columns = score_range_string)
+FNsumdf['IoU_thresh'] = iou_thresholds
 FNsumdf.to_csv(os.path.join(weight_eval_DIR, 'FN_perScore_IoU{}.csv'.format(weight_name)))
 
-sendf = pd.DataFrame(sen, columns = str(iou_thresholds))
+sendf = pd.DataFrame(sen, columns = score_range_string)
+sendf['IoU_thresh'] = iou_thresholds
 sendf.to_csv(os.path.join(weight_eval_DIR, 'sen_perScore_IoU{}.csv'.format(weight_name)))
 
-precdf = pd.DataFrame(prec, columns = str(iou_thresholds))
+precdf = pd.DataFrame(prec, columns = score_range_string)
+precdf['IoU_thresh'] = iou_thresholds
 precdf.to_csv(os.path.join(weight_eval_DIR, 'prec_perScore_IoU{}.csv'.format(weight_name)))
 
+Fdf = pd.DataFrame(F, columns = score_range_string)
+Fdf['IoU_thresh'] = iou_thresholds
+Fdf.to_csv(os.path.join(weight_eval_DIR, 'F_perScore_IoU{}.csv'.format(weight_name)))
+
 # 45
-TP_45sumdf = pd.DataFrame(TP_45sum, columns = str(iou_thresholds))
+TP_45sumdf = pd.DataFrame(TP_45sum, columns = score_range_string)
+TP_45sumdf['IoU_thresh'] = iou_thresholds
 TP_45sumdf.to_csv(os.path.join(weight_eval_DIR, 'TP_45_perScore_IoU{}.csv'.format(weight_name)))
 
-FP_45sumdf = pd.DataFrame(FP_45sum, columns = str(iou_thresholds))
+FP_45sumdf = pd.DataFrame(FP_45sum, columns = score_range_string)
+FP_45sumdf['IoU_thresh'] = iou_thresholds
 FP_45sumdf.to_csv(os.path.join(weight_eval_DIR, 'FP_45_perScore_IoU{}.csv'.format(weight_name)))
 
-FN_45sumdf = pd.DataFrame(FN_45sum, columns = str(iou_thresholds))
+FN_45sumdf = pd.DataFrame(FN_45sum, columns = score_range_string)
+FN_45sumdf['IoU_thresh'] = iou_thresholds
 FN_45sumdf.to_csv(os.path.join(weight_eval_DIR, 'FN_45_perScore_IoU{}.csv'.format(weight_name)))
 
-sen_45df = pd.DataFrame(sen_45, columns = str(iou_thresholds))
+sen_45df = pd.DataFrame(sen_45, columns = score_range_string)
+sen_45df['IoU_thresh'] = iou_thresholds
 sen_45df.to_csv(os.path.join(weight_eval_DIR, 'sen_45_perScore_IoU{}.csv'.format(weight_name)))
 
-prec_45df = pd.DataFrame(prec_45, columns = str(iou_thresholds))
+prec_45df = pd.DataFrame(prec_45, columns = score_range_string)
+prec_45df['IoU_thresh'] = iou_thresholds
 prec_45df.to_csv(os.path.join(weight_eval_DIR, 'prec_45_perScore_IoU{}.csv'.format(weight_name)))
 
+F_45df = pd.DataFrame(F_45, columns = score_range_string)
+F_45df['IoU_thresh'] = iou_thresholds
+F_45df.to_csv(os.path.join(weight_eval_DIR, 'F_45_perScore_IoU{}.csv'.format(weight_name)))
+
 # 90
-TP_90sumdf = pd.DataFrame(TP_90sum, columns = str(iou_thresholds))
+TP_90sumdf = pd.DataFrame(TP_90sum, columns = score_range_string)
+TP_90sumdf['IoU_thresh'] = iou_thresholds
 TP_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'TP_90_perScore_IoU{}.csv'.format(weight_name)))
 
-FP_90sumdf = pd.DataFrame(FP_90sum, columns = str(iou_thresholds))
+FP_90sumdf = pd.DataFrame(FP_90sum, columns = score_range_string)
+FP_90sumdf['IoU_thresh'] = iou_thresholds
 FP_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'FP_90_perScore_IoU{}.csv'.format(weight_name)))
 
-FN_90sumdf = pd.DataFrame(FN_90sum, columns = str(iou_thresholds))
+FN_90sumdf = pd.DataFrame(FN_90sum, columns = score_range_string)
+FN_90sumdf['IoU_thresh'] = iou_thresholds
 FN_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'FN_90_perScore_IoU{}.csv'.format(weight_name)))
 
-sen_90df = pd.DataFrame(sen_90, columns = str(iou_thresholds))
+sen_90df = pd.DataFrame(sen_90, columns = score_range_string)
+sen_90df['IoU_thresh'] = iou_thresholds
 sen_90df.to_csv(os.path.join(weight_eval_DIR, 'sen_90_perScore_IoU{}.csv'.format(weight_name)))
 
-prec_90df = pd.DataFrame(prec_90, columns = str(iou_thresholds))
+prec_90df = pd.DataFrame(prec_90, columns = score_range_string)
+prec_90df['IoU_thresh'] = iou_thresholds
 prec_90df.to_csv(os.path.join(weight_eval_DIR, 'prec_90_perScore_IoU{}.csv'.format(weight_name)))
+
+F_90df = pd.DataFrame(F_90, columns = score_range_string)
+F_90df['IoU_thresh'] = iou_thresholds
+F_90df.to_csv(os.path.join(weight_eval_DIR, 'F_90_perScore_IoU{}.csv'.format(weight_name)))
 
 # combined
-TP_90sumdf = pd.DataFrame(TP_90sum, columns = str(iou_thresholds))
-TP_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'TP_90_perScore_IoU{}.csv'.format(weight_name)))
+TP_combinedsumdf = pd.DataFrame(TP_combined_sum, columns = score_range_string)
+TP_combinedsumdf['IoU_thresh'] = iou_thresholds
+TP_combinedsumdf.to_csv(os.path.join(weight_eval_DIR, 'TP_combined_perScore_IoU{}.csv'.format(weight_name)))
 
-FP_90sumdf = pd.DataFrame(FP_90sum, columns = str(iou_thresholds))
-FP_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'FP_90_perScore_IoU{}.csv'.format(weight_name)))
+FP_combinedsumdf = pd.DataFrame(FP_combined_sum, columns = score_range_string)
+FP_combinedsumdf['IoU_thresh'] = iou_thresholds
+FP_combinedsumdf.to_csv(os.path.join(weight_eval_DIR, 'FP_combined_perScore_IoU{}.csv'.format(weight_name)))
 
-FN_90sumdf = pd.DataFrame(FN_90sum, columns = str(iou_thresholds))
-FN_90sumdf.to_csv(os.path.join(weight_eval_DIR, 'FN_90_perScore_IoU{}.csv'.format(weight_name)))
+FN_combinedsumdf = pd.DataFrame(FN_combined_sum, columns = score_range_string)
+FN_combinedsumdf['IoU_thresh'] = iou_thresholds
+FN_combinedsumdf.to_csv(os.path.join(weight_eval_DIR, 'FN_combined_perScore_IoU{}.csv'.format(weight_name)))
 
-sen_90df = pd.DataFrame(sen_90, columns = str(iou_thresholds))
-sen_90df.to_csv(os.path.join(weight_eval_DIR, 'sen_90_perScore_IoU{}.csv'.format(weight_name)))
+sen_combineddf = pd.DataFrame(sen_combined, columns = score_range_string)
+sen_combineddf['IoU_thresh'] = iou_thresholds
+sen_combineddf.to_csv(os.path.join(weight_eval_DIR, 'sen_combined_perScore_IoU{}.csv'.format(weight_name)))
 
-prec_90df = pd.DataFrame(prec_90, columns = str(iou_thresholds))
-prec_90df.to_csv(os.path.join(weight_eval_DIR, 'prec_90_perScore_IoU{}.csv'.format(weight_name)))
-#save table
-df = pd.DataFrame()
+prec_combineddf = pd.DataFrame(prec_combined, columns = score_range_string)
+prec_combineddf['IoU_thresh'] = iou_thresholds
+prec_combineddf.to_csv(os.path.join(weight_eval_DIR, 'prec_combined_perScore_IoU{}.csv'.format(weight_name)))
 
+F_combineddf = pd.DataFrame(F_combined, columns = score_range_string)
+F_combineddf['IoU_thresh'] = iou_thresholds
+F_combineddf.to_csv(os.path.join(weight_eval_DIR, 'F_combined_perScore_IoU{}.csv'.format(weight_name)))
 
+## TABLE FOR ALL APs
+AP_lists = pd.DataFrame()
+AP_lists['IoU_thresh'] = iou_thresholds
+AP_lists['AP_norm'] = APlist_mean
+AP_lists['AP_90'] = APlist_90mean
+AP_lists['AP_45'] = APlist_45mean
+AP_lists.to_csv(os.path.join(weight_eval_DIR, 'APs_per_IoU{}.csv'.format(weight_name)))
+## TABLE FOR ALL IuOs
+IoU_df = pd.DataFrame()
+IoU_df['Score_R'] = score_range
+IoU_df['IoU_norm'] = IoUmean
+IoU_df['IoU_90'] = IoU_90mean
+IoU_df['IoU_45'] = IoU_45mean
+IoU_df['IoU_comb'] = IoU_combined_mean
+IoU_df.to_csv(os.path.join(weight_eval_DIR, 'IoU_per_Score{}.csv'.format(weight_name)))
 
+## CREATE RESULTS TABLE ONLY FOR A SINGLE SCORE VALUE CHOSEN BASED ON THE BEST F VALUE
+
+"""
 df['variables'] = ["mAP", "AP50", "mAP_ring", "AP50_ring", "mAP_crack", "AP50_crack", "mAP_resin", "AP50_resin", "mAP_pith", "AP50_pith",  "TP", "FP",
 "FN", "SEN", "PREC", "TP_ring", "FP_ring", "FN_ring","SEN_ring", "PREC_ring", "TP_crack", "FP_crack", "FN_crack", "SEN_crack", "PREC_crack", "TP_resin",
 "FP_resin", "FN_resin", "SEN_resin", "PREC_resin", "TP_pith", "FP_pith", "FN_pith", "SEN_pith", "PREC_pith","IoU", "IoU_ring", "IoU_crack", "IoU_resin",
@@ -866,3 +954,4 @@ df_PrecRec['Prec_pith_45'] = PREC_pith_45
 df_PrecRec['Rec_pith_45'] = SEN_pith_45
 
 df_PrecRec.to_csv(os.path.join(weight_eval_DIR, 'PrecRec_graph_data_{}.csv'.format(weight_name)))
+"""

@@ -254,12 +254,12 @@ def sliding_window_detection(image, modelRing=None, modelCrack=None, min_score=N
     pad_back = zero_padding_back.shape[1]
     the_mask_clean = combined_masks_per_class[:,pad_front:-pad_back,:]
 
-    print('the_mask_clean.shape', the_mask_clean.shape)
+    #print('the_mask_clean.shape', the_mask_clean.shape)
 
     #here you have to concatanete the top and buttom to fit the original image
 
     missing_part = int((imgheight_origin - the_mask_clean.shape[0])/2)
-    print("missing_part", missing_part)
+    #print("missing_part", missing_part)
     n_mask_clean = the_mask_clean.shape[2]
     to_concatenate = np.zeros(shape=(missing_part, imgwidth_origin,n_mask_clean))
     #print("to_concatenate.shape", to_concatenate.shape)
@@ -279,7 +279,7 @@ def clean_up_mask(mask, is_ring=True):
 
     # make the mask binary
     binary_mask = np.where(mask > 2, 255, 0) # this part can be cleaned to remove some missdetections setting condition for >=2
-    print("binary_mask shape", binary_mask.shape)
+    #print("binary_mask shape", binary_mask.shape)
     #plt.show()
     #type(binary_mask)
     uint8binary = binary_mask.astype(np.uint8).copy()
@@ -613,10 +613,10 @@ def measure_contours(Multi_centerlines, image):
 #######################################################################
 # plot predicted lines and points of measurements to visually assess
 #######################################################################
-def plot_lines(image, file_name, path_out, gt_masks=None, clean_contours=None ,centerlines=None, measure_points=None, debug=True):
+def plot_lines(image, file_name, path_out, SR, gt_masks=None, clean_contours=None ,centerlines=None, measure_points=None, debug=True):
     #create pngs folder in output path
     print("Plotting output as png")
-    export_path = os.path.join(path_out, 'pngs')
+    export_path = os.path.join(path_out, 'pngs'+'SR'+str(SR))
     if not os.path.exists(export_path):
         os.makedirs(export_path)
 
@@ -696,7 +696,7 @@ def plot_lines(image, file_name, path_out, gt_masks=None, clean_contours=None ,c
         print('contour_shape:', len(contours))
         # Extract x and y coordinates
         for i in range(len(contours)):
-            print('printing contour', i)
+            #print('printing contour', i)
             x_contour = []
             y_contour = []
             for p in range(len(contours[i])):
@@ -709,7 +709,7 @@ def plot_lines(image, file_name, path_out, gt_masks=None, clean_contours=None ,c
     if clean_contours is not None:
         # Extract x and y coordinates
         for i in range(len(clean_contours)):
-            print('printing clean_contour', i)
+            #print('printing clean_contour', i)
             x_contour = []
             y_contour = []
             for p in range(len(clean_contours[i])):
