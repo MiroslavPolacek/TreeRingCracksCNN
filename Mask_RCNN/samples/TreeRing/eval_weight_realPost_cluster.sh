@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:RTX:1
 #SBATCH --partition=g
-#SBATCH --mem=120G
+#SBATCH --mem=24G
 #SBATCH --qos=short
 #SBATCH --time=0-08:00:00
 #SBATCH --output=eval_real_post.stdout
