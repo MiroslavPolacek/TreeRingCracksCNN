@@ -578,7 +578,7 @@ for image_id in image_ids:
         combined_mask_binary = contours_to_binary(clean_contours_rings, imgheight, imgheight, debug=False)
         print('combined_mask_binary.shape', combined_mask_binary.shape)
 
-        if True:
+        if False:
             # Ploting lines is moslty for debugging
             file_name = 'image'+ str(image_id)
             masked_image = image.astype(np.uint32).copy()
