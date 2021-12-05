@@ -120,7 +120,7 @@ def TP_FP_FN_IoU_per_score_mask(gt_mask, pred_mask, scores, IoU_threshold, score
         #print('mask_SR.shape:', mask_SR.shape)
 
         mask_matrix = utils.compute_overlaps_masks(gt_mask, mask_SR)
-        #print("mask_matrix", mask_matrix)
+        print("mask_matrix", mask_matrix)
         # calculate average IoU
         IoU_clean = mask_matrix[np.where(mask_matrix>0)]
         #print("IoU_clean", IoU_clean)
@@ -157,9 +157,9 @@ def TP_FP_FN_IoU_per_score_mask(gt_mask, pred_mask, scores, IoU_threshold, score
             FN = gt_r - TP
             FNs.append(FN)
 
-        #print('TPs:', TPs)
-        #print('FPs:', FPs)
-        #print('FNs:', FNs)
+        print('TPs:', TPs)
+        print('FPs:', FPs)
+        print('FNs:', FNs)
     #put together and sum up TP...per range
 
     return TPs, FPs, FNs, IoUs
@@ -232,7 +232,7 @@ def TP_FP_FN_IoU_comb(gt_mask, pred_mask, IoU_thresholds=None):
     for iou_threshold in IoU_thresholds:
 
         mask_matrix = utils.compute_overlaps_masks(gt_mask, pred_mask)
-        #print("combined_mask_matrix", mask_matrix)
+        print("combined_mask_matrix", mask_matrix)
 
         if iou_threshold == min(IoU_thresholds):
             # calculate average IoU
@@ -271,9 +271,9 @@ def TP_FP_FN_IoU_comb(gt_mask, pred_mask, IoU_thresholds=None):
             FN = gt_r - TP
             FNs.append(FN)
 
-        #print('TPs:', TPs)
-        #print('FPs:', FPs)
-        #print('FNs:', FNs)
+        print('TPs:', TPs)
+        print('FPs:', FPs)
+        print('FNs:', FNs)
     #put together and sum up TP...per range
 
     return TPs, FPs, FNs, IoUs
@@ -438,12 +438,12 @@ FP_combined = []
 FN_combined = []
 
 ## thresholds
-iou_thresholds = np.round(np.arange(0.5, 1.0, 0.05),2)
-score_range = np.round(np.arange(0.5, 1.02, 0.02),2)
+#iou_thresholds = np.round(np.arange(0.3, 1.0, 0.05),2)
+#score_range = np.round(np.arange(0.5, 1.0, 0.02),2)
 
 ## short for debugging
-#iou_thresholds = np.arange(0.5, 0.55, 0.05)
-#score_range = np.arange(0.55, 0.6, 0.05)
+iou_thresholds = [0.5]#np.arange(0.5, 0.55, 0.05)
+score_range = [0.98] #np.arange(0.98, 1, 0.02)
 
 # Main structure
 for image_id in image_ids:
@@ -562,17 +562,25 @@ for image_id in image_ids:
     print(IoU_45)
 
 ###### GET COMBINED MASK WITH POSTPROCESSING AND CLACULATE precission, recall and IoU
+    cropUpandDown = 0.17
     TP_temp = []
     FP_temp = []
     FN_temp = []
     IoU_temp = []
+    # adjust gt_mask in case cropUpandDown is used in detection
+    if cropUpandDown > 0:
+        to_zero = int(imgheight*cropUpandDown)
+        gt_mask[:to_zero,:,:] = 0
+        gt_mask[(imgheight-to_zero):,:,:] = 0
+
+
     for SR in score_range:
         print("Looping through score range for combined mask, now at:", SR)
-        detected_mask = sliding_window_detection(image = image, modelRing=model, min_score=SR, overlap = 0.75, cropUpandDown = 0)
+        detected_mask = sliding_window_detection(image = image, modelRing=model, min_score=SR, overlap = 0.75, cropUpandDown = cropUpandDown)
         detected_mask_rings = detected_mask[:,:,0]
         #print("detected_mask_rings", detected_mask_rings.shape)
         #print("detected_mask_cracks", detected_mask_cracks.shape)
-        clean_contours_rings = clean_up_mask(detected_mask_rings, is_ring=False)
+        clean_contours_rings = clean_up_mask(detected_mask_rings, is_ring=True)
         #print("clean_contours_rings", len(clean_contours_rings))
 
         combined_mask_binary = contours_to_binary(clean_contours_rings, imgheight, imgheight, debug=False)

@@ -10,5 +10,5 @@ do
     --TreeRingConf=$FILE \
     --dataset=/home/miroslavp/Pictures/val_new_subset \
     --weight=/home/miroslavp/Github/TRG-ImageProcessing/CoreProcessingPipelineScripts/CNN/Mask_RCNN/logs/treeringcrackscomb2_onlyring20210121T1457/mask_rcnn_treeringcrackscomb2_onlyring_0186.h5 \
-    --path_out=/home/miroslavp/Pictures/new_val_detections
+    --path_out=/home/miroslavp/Pictures/new_val_detections/curent_debug
 done
