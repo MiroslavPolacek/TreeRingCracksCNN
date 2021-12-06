@@ -5,7 +5,7 @@
 #SBATCH --partition=g
 #SBATCH --mem=24G
 #SBATCH --qos=short
-#SBATCH --time=0-01:00:00
+#SBATCH --time=0-04:00:00
 #SBATCH --output=eval_real_post.stdout
 
 ml load anaconda3/2019.03
