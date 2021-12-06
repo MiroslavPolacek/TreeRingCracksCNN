@@ -438,12 +438,12 @@ FP_combined = []
 FN_combined = []
 
 ## thresholds
-#iou_thresholds = np.round(np.arange(0.3, 1.0, 0.05),2)
-#score_range = np.round(np.arange(0.5, 1.0, 0.02),2)
+iou_thresholds = np.round(np.arange(0.5, 1.0, 0.05),2)
+score_range = [0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.92,0.94,0.95,0.96,0.97,0.98,0.99,1] #np.round(np.arange(0.5, 1.0, 0.02),2)
 
 ## short for debugging
-iou_thresholds = [0.5]#np.arange(0.5, 0.55, 0.05)
-score_range = [0.98] #np.arange(0.98, 1, 0.02)
+#iou_thresholds = [0.5]#np.arange(0.5, 0.55, 0.05)
+#score_range = [0.98] #np.arange(0.98, 1, 0.02)
 
 # Main structure
 
