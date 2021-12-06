@@ -4,8 +4,8 @@
 #SBATCH --gres=gpu:RTX:1
 #SBATCH --partition=g
 #SBATCH --mem=24G
-#SBATCH --qos=long
-#SBATCH --time=2-12:00:00
+#SBATCH --qos=short
+#SBATCH --time=0-01:00:00
 #SBATCH --output=eval_real_post.stdout
 
 ml load anaconda3/2019.03

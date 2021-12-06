@@ -446,7 +446,8 @@ iou_thresholds = [0.5]#np.arange(0.5, 0.55, 0.05)
 score_range = [0.98] #np.arange(0.98, 1, 0.02)
 
 # Main structure
-for image_id in image_ids:
+image_ids_test = [107,108,109,110]
+for image_id in image_ids_test: #image_ids:
 
     ## Load the ground truth for the image
     image, image_meta, gt_class_id, gt_bbox, gt_mask =\
