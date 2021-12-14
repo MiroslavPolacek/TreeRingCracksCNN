@@ -439,7 +439,7 @@ FN_combined = []
 
 ## thresholds
 iou_thresholds = np.round(np.arange(0.5, 1.0, 0.05),2)
-score_range = [0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.92,0.94,0.95,0.96,0.97,0.98,0.99,1] #np.round(np.arange(0.5, 1.0, 0.02),2)
+score_range = np.round(np.arange(0.5, 1.0, 0.01),2) #[0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.92,0.94,0.95,0.96,0.97,0.98,0.99,1] 
 
 ## short for debugging
 #iou_thresholds = [0.5]#np.arange(0.5, 0.55, 0.05)
@@ -587,7 +587,7 @@ for image_id in image_ids:
         combined_mask_binary = contours_to_binary(clean_contours_rings, imgheight, imgheight, debug=False)
         print('combined_mask_binary.shape', combined_mask_binary.shape)
 
-        if False:
+        if SR==0.98:
             # Ploting lines is moslty for debugging
             file_name = 'image'+ str(image_id)
             masked_image = image.astype(np.uint32).copy()
