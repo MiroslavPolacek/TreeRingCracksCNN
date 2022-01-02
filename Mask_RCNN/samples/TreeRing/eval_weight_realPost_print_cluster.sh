@@ -13,7 +13,7 @@ source activate ~/.conda/envs/TreeRingCNN
 
 time ~/.conda/envs/TreeRingCNN/bin/python3 \
   /users/miroslav.polacek/TreeRingCracksCNN/Mask_RCNN/samples/TreeRing/evaluate_weights_realPost_print.py \
-  --TreeRingConf=TreeRingCombMaskExamples \
+  --TreeRingConf=TreeRingComb2_onlyRing_0 \
   --dataset=/groups/swarts/user/miroslav.polacek/CNN/val_new \
   --weight=/groups/swarts/user/miroslav.polacek/github/TreeRingCracksCNN/Mask_RCNN/logs/treeringcrackscomb2_onlyring20210121T1457/mask_rcnn_treeringcrackscomb2_onlyring_0186.h5 \
   --path_out=/users/miroslav.polacek/eval_testing/results
