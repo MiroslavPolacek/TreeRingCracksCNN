@@ -626,7 +626,7 @@ def plot_lines(image, file_name, path_out, SR, gt_masks=None, clean_contours=Non
     #save images at original size unless they are bigger then 30000. Should improve diagnostics on the images
     imgheight, imgwidth = image.shape[:2]
     #print('imgheight, imgwidth', imgheight, imgwidth)
-    plot_dpi = 300
+    plot_dpi = 100
 
     if imgwidth < 30000:
         plt.figure(figsize = (imgwidth/plot_dpi, 2*(imgheight/plot_dpi)), dpi=plot_dpi)
