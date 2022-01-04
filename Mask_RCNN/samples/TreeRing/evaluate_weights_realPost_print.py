@@ -456,7 +456,7 @@ image_id_subset = [2, 22, 44,47,98,332,4,14,82,87,89,93,97,101,105,106,109,113,
 image_id_subset = [37,84,88,102,172,213,215,228,233,337,339, 343,348,
                 355,370] # only images containing cracks
 """
-for image_id in image_id_subset:
+for image_id in image_ids:
 
     ## Load the ground truth for the image
     image, image_meta, gt_class_id, gt_bbox, gt_mask =\
