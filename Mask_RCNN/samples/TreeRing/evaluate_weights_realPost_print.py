@@ -443,7 +443,7 @@ FN_combined = []
 
 ## short for debugging
 iou_thresholds = [0.5]#np.arange(0.5, 0.55, 0.05)
-score_range = [0.5] #np.arange(0.98, 1, 0.02)
+score_range = [0.99] #np.arange(0.98, 1, 0.02)
 [SR] =  score_range
 # Main structure
 """
