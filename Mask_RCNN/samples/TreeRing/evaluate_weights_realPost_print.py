@@ -456,7 +456,8 @@ image_id_subset = [2, 22, 44,47,98,332,4,14,82,87,89,93,97,101,105,106,109,113,
 image_id_subset = [37,84,88,102,172,213,215,228,233,337,339, 343,348,
                 355,370] # only images containing cracks
 """
-for image_id in image_ids:
+image_id_subset = [22,82,106]
+for image_id in image_id_subset:
 
     ## Load the ground truth for the image
     image, image_meta, gt_class_id, gt_bbox, gt_mask =\
@@ -629,7 +630,7 @@ for image_id in image_ids:
         detected_mask_rings = detected_mask[:,:,0]
         #print("detected_mask_rings", detected_mask_rings.shape)
         #print("detected_mask_cracks", detected_mask_cracks.shape)
-        clean_contours_rings = clean_up_mask(detected_mask_rings, is_ring=False)
+        clean_contours_rings = clean_up_mask(detected_mask_rings, is_ring=True)
         #print("clean_contours_rings", len(clean_contours_rings))
 
         combined_mask_binary = contours_to_binary(clean_contours_rings, imgheight, imgheight, debug=False)

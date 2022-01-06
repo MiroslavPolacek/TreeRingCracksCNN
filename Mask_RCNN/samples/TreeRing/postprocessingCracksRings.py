@@ -723,6 +723,7 @@ def plot_lines(image, file_name, path_out, SR, gt_masks=None, clean_contours=Non
         plt.show()
 
     else:
+        plt.axis('off') # remove axes for cleaner look
         plt.savefig(os.path.join(export_path, f), bbox_inches = 'tight', pad_inches = 0)
 
 #######################################################################
